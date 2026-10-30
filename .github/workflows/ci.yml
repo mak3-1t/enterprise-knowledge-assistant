@@ -1,0 +1,36 @@
+﻿name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repo-checks:
+    name: Repository checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify required files exist
+        run: |
+          for f in README.md LICENSE .gitignore .gitattributes .editorconfig .env.example CONTRIBUTING.md SECURITY.md; do
+            test -f "$f" || { echo "Missing required file: $f"; exit 1; }
+          done
+          echo "All required files present."
+
+      - name: Ensure no .env file is committed
+        run: |
+          if git ls-files | grep -E '(^|/)\.env$'; then
+            echo "A .env file is tracked by git. Remove it and rotate any secrets."
+            exit 1
+          fi
+          echo "No .env file tracked."
