@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: enterprise-knowledge-assistant
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
