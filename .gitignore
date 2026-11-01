@@ -25,3 +25,9 @@ replay_pid*
 
 # Maven build output
 target/
+
+# Local secrets
+.env
+.env.local
+*.pem
+*.key
