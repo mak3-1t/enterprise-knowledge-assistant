@@ -11,7 +11,7 @@ Employees ask questions in natural language. The system answers with source cita
 respects per-user permissions, and keeps each tenant's data isolated.
 
 ## Planned tech stack
-Java 21, Spring Boot 3, Spring AI, PostgreSQL + pgvector, Redis, Kafka, S3-compatible object storage, Docker, Kubernetes.
+Java 21, Spring Boot 4.1, Spring AI, PostgreSQL + pgvector, Redis, Kafka, S3-compatible object storage, Docker, Kubernetes.
 
 ## Quick start
 
