@@ -1,4 +1,4 @@
-﻿# Contributing
+# Contributing
 
 ## Workflow
 1. Pick a story from the GitHub Project board and move it to In Progress.
@@ -13,3 +13,7 @@
 - No secrets in code
 - OpenAPI, README or ADR updated when needed
 - Logs and metrics added for new flows
+
+## Java style checks
+See [Java formatting and static checks](docs/code-style.md) for the rules,
+automatic formatting, verification commands and test-agent configuration.
