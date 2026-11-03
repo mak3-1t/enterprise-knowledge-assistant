@@ -15,7 +15,7 @@ Java 21, Spring Boot 4.1, Spring AI, PostgreSQL + pgvector, Redis, Kafka, S3-com
 
 ## Quick start
 
-Requirements: Java 21, Docker Desktop.
+Requirements: Java 21, Docker Desktop. The app also needs PostgreSQL credentials in its process environment; see [auth persistence setup](docs/auth-persistence.md).
 
 ```bash
 cp .env.example .env        # PowerShell: Copy-Item .env.example .env
@@ -25,6 +25,7 @@ docker compose --env-file .env -f deploy/docker/docker-compose.yml up -d
 Starts PostgreSQL + pgvector, Redis, Kafka (KRaft) and an S3-compatible object store.
 All ports are bound to 127.0.0.1. Check health with `docker compose ... ps`.
 ## Documentation
+- Auth database setup and integration tests: [docs/auth-persistence.md](docs/auth-persistence.md)
 - Architecture decisions: [docs/adr](docs/adr)
 - Sprint notes: [docs/sprint-notes](docs/sprint-notes)
 

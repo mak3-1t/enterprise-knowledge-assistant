@@ -57,6 +57,9 @@ jobs:
           java-version: 21
           cache: maven
 
+      - name: Verify Docker for PostgreSQL integration tests
+        run: docker info
+
       - name: Build and test
         run: ./mvnw -B verify
 
