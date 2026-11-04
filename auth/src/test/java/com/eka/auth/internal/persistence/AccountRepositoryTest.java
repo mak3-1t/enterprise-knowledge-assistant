@@ -70,6 +70,9 @@ class AccountRepositoryTest {
                         });
         assertThat(repository.findById(tenantB, b)).isPresent();
         assertThat(repository.findById(tenantA, b)).isEmpty();
+        assertThat(repository.findActiveIdentity(tenantA, a)).isPresent();
+        assertThat(repository.findActiveIdentity(tenantA, b)).isEmpty();
+        assertThat(repository.findActiveIdentity(tenantB, a)).isEmpty();
         assertThat(repository.findById(tenantB, a)).isEmpty();
         assertThat(repository.findById(tenantA, UUID.randomUUID())).isEmpty();
     }
@@ -123,6 +126,7 @@ class AccountRepositoryTest {
         var credentials =
                 repository.findCredentials("tenant-a", "inactive@example.test").orElseThrow();
         assertThat(credentials.tenantActive()).isFalse();
+        assertThat(repository.findActiveIdentity(tenantA, id)).isEmpty();
         assertThat(credentials.account().active()).isFalse();
     }
 

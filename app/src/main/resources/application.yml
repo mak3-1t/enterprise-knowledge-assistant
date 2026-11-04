@@ -14,7 +14,18 @@ spring:
     locations: classpath:db/migration
 
 management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
   endpoints:
     web:
       exposure:
         include: health,info
+
+eka:
+  auth:
+    private-key: ${EKA_AUTH_PRIVATE_KEY}
+    public-key: ${EKA_AUTH_PUBLIC_KEY}
+    issuer: ${EKA_AUTH_ISSUER}
+    audience: ${EKA_AUTH_AUDIENCE}
