@@ -81,9 +81,9 @@ turn on HTTP-body/security debug logging for real credentials.
 - Missing/invalid/expired token: JSON 401 and Bearer challenge.
 - Insufficient role: JSON 403. No HTML form-login redirect or browser session cookie.
 
-GET /api/me and tenant member APIs belong to the next story. The test-only identity
-endpoint is absent from packaged code. AuthenticatedAccount / CurrentAccount is the
-small public module API prepared for those endpoints.
+GET /api/me and tenant ADMIN member endpoints are documented in [tenant-member-api.md](tenant-member-api.md).
+The test-only identity endpoint is absent from packaged code. AuthenticatedAccount / CurrentAccount
+is the small public module API used by the production endpoints.
 
 ## Tests and limitations
 

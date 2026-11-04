@@ -34,6 +34,9 @@ public class HttpSecurityConfiguration {
                                                 "/actuator/health/liveness",
                                                 "/actuator/health/readiness")
                                         .permitAll()
+                                        .requestMatchers(
+                                                "/api/tenant/members", "/api/tenant/members/**")
+                                        .hasRole("ADMIN")
                                         .requestMatchers("/actuator/**")
                                         .hasRole("ADMIN")
                                         .anyRequest()
