@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.eka.auth.api.CurrentAccount;
 import com.eka.auth.internal.security.DevAccountProvisioner;
 import com.eka.auth.internal.security.LoginService;
+import com.eka.auth.internal.service.IdentityService;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.RSASSASigner;
@@ -21,9 +22,11 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,6 +50,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
@@ -68,6 +72,7 @@ class AuthHttpTests {
     @Autowired LoginService login;
     @Autowired MeterRegistry metrics;
     @Autowired MutableClock clock;
+    @Autowired ObjectMapper json;
     UUID tenant;
     UUID otherTenant;
     UUID user;
@@ -286,6 +291,226 @@ class AuthHttpTests {
                                 .query(Long.class)
                                 .single())
                 .isEqualTo(1L);
+    }
+
+    @Test
+    void meReturnsOnlySafeCurrentIdentityForEitherTenant() throws Exception {
+        String a = login.login("alpha", "person@example.test", PASSWORD).accessToken();
+        String b = login.login("beta", "person@example.test", PASSWORD).accessToken();
+        var responseA = get("/api/me", a);
+        var responseB = get("/api/me", b);
+        assertThat(responseA.statusCode()).isEqualTo(200);
+        assertThat(responseB.statusCode()).isEqualTo(200);
+        assertThat(json.readValue(responseA.body(), IdentityService.MeView.class))
+                .isEqualTo(
+                        new IdentityService.MeView(user, tenant, "person@example.test", "MEMBER"));
+        assertThat(json.readValue(responseB.body(), IdentityService.MeView.class))
+                .isEqualTo(
+                        new IdentityService.MeView(
+                                otherUser, otherTenant, "person@example.test", "ADMIN"));
+        assertThat(responseA.body())
+                .doesNotContain("password", "hash", "accessToken", otherTenant.toString());
+        assertThat(responseA.headers().firstValue("Cache-Control")).contains("no-store");
+    }
+
+    @Test
+    void onlyAdminsCanReadTheirOwnTenantMemberListAndDetails() throws Exception {
+        String a = adminToken();
+        String b = login.login("beta", "person@example.test", PASSWORD).accessToken();
+        for (String token : List.of(a, b)) {
+            UUID expectedTenant = token.equals(a) ? tenant : otherTenant;
+            UUID expectedUser = token.equals(a) ? user : otherUser;
+            UUID foreignUser = token.equals(a) ? otherUser : user;
+            var listed = get("/api/tenant/members", token);
+            assertThat(listed.statusCode()).isEqualTo(200);
+            var page = json.readValue(listed.body(), IdentityService.MemberPage.class);
+            assertThat(page.page()).isZero();
+            assertThat(page.size()).isEqualTo(20);
+            assertThat(page.items())
+                    .extracting(IdentityService.MemberView::id)
+                    .containsExactly(expectedUser);
+            assertThat(page.items()).allMatch(item -> item.tenantId().equals(expectedTenant));
+            var detail = get("/api/tenant/members/" + expectedUser, token);
+            assertThat(detail.statusCode()).isEqualTo(200);
+            assertThat(detail.body())
+                    .doesNotContain("password", "hash", "accessToken", foreignUser.toString());
+            assertThat(json.readValue(detail.body(), IdentityService.MemberView.class).id())
+                    .isEqualTo(expectedUser);
+            var foreign = get("/api/tenant/members/" + foreignUser, token);
+            var missing = get("/api/tenant/members/" + UUID.randomUUID(), token);
+            assertThat(foreign.statusCode()).isEqualTo(404);
+            assertThat(missing.statusCode()).isEqualTo(404);
+            assertThat(foreign.body())
+                    .isEqualTo(missing.body())
+                    .isEqualTo("{\"error\":\"not_found\"}");
+        }
+        assertThat(
+                        metrics.get("eka.auth.events")
+                                .tag("outcome", "member_not_found")
+                                .counter()
+                                .count())
+                .isPositive();
+    }
+
+    @Test
+    void memberGets403EvenWithForgedRoleTenantAndInvalidMemberId() throws Exception {
+        String member = login.login("alpha", "person@example.test", PASSWORD).accessToken();
+        for (String path :
+                List.of(
+                        "/api/tenant/members",
+                        "/api/tenant/members/" + user,
+                        "/api/tenant/members/" + otherUser,
+                        "/api/tenant/members/not-a-uuid",
+                        "/api/tenant/members?role=ADMIN&tenantId=" + otherTenant)) {
+            var response = get(path, member);
+            assertThat(response.statusCode()).isEqualTo(403);
+            assertThat(response.body()).isEqualTo("{\"error\":\"forbidden\"}");
+        }
+    }
+
+    @Test
+    void anonymousAndExpiredIdentityCannotUseAnyRealIdentityEndpoint() throws Exception {
+        for (String path :
+                List.of("/api/me", "/api/tenant/members", "/api/tenant/members/" + user)) {
+            assertThat(get(path, null).statusCode()).isEqualTo(401);
+        }
+        String token = adminToken();
+        jdbc.sql("UPDATE auth.accounts SET active = false WHERE id = ?").param(user).update();
+        assertThat(get("/api/me", token).statusCode()).isEqualTo(401);
+        assertThat(get("/api/tenant/members", token).statusCode()).isEqualTo(401);
+        jdbc.sql("UPDATE auth.accounts SET active = true WHERE id = ?").param(user).update();
+        jdbc.sql("UPDATE auth.tenants SET active = false WHERE id = ?").param(tenant).update();
+        assertThat(get("/api/me", token).statusCode()).isEqualTo(401);
+        jdbc.sql("UPDATE auth.tenants SET active = true WHERE id = ?").param(tenant).update();
+        clock.now = NOW.plusSeconds(901);
+        assertThat(get("/api/tenant/members", token).statusCode()).isEqualTo(401);
+    }
+
+    @Test
+    void paginationDefaultsBoundsAndOrderingAreTenantScoped() throws Exception {
+        String token = adminToken();
+        for (int index = 0; index < 21; index++) {
+            account(tenant, "extra-" + index + "@example.test", "MEMBER");
+        }
+        var first =
+                json.readValue(
+                        get("/api/tenant/members", token).body(), IdentityService.MemberPage.class);
+        var second =
+                json.readValue(
+                        get("/api/tenant/members?page=1", token).body(),
+                        IdentityService.MemberPage.class);
+        var repeated =
+                json.readValue(
+                        get("/api/tenant/members?page=0&size=20", token).body(),
+                        IdentityService.MemberPage.class);
+        assertThat(first.items()).hasSize(20).allMatch(item -> item.tenantId().equals(tenant));
+        assertThat(second.items()).hasSize(2).allMatch(item -> item.tenantId().equals(tenant));
+        assertThat(repeated).isEqualTo(first);
+        var ids = new ArrayList<UUID>();
+        first.items().forEach(item -> ids.add(item.id()));
+        second.items().forEach(item -> ids.add(item.id()));
+        assertThat(ids).hasSize(22).doesNotHaveDuplicates().doesNotContain(otherUser);
+        var maximum = get("/api/tenant/members?size=100", token);
+        assertThat(maximum.statusCode()).isEqualTo(200);
+        assertThat(json.readValue(maximum.body(), IdentityService.MemberPage.class).items())
+                .hasSize(22);
+        assertThat(
+                        json.readValue(
+                                        get("/api/tenant/members?page=100", token).body(),
+                                        IdentityService.MemberPage.class)
+                                .items())
+                .isEmpty();
+    }
+
+    @Test
+    void malformedPaginationAndUuidReturnGeneric400ForAdmin() throws Exception {
+        String token = adminToken();
+        for (String suffix :
+                List.of(
+                        "?page=-1",
+                        "?size=0",
+                        "?size=101",
+                        "?page=x",
+                        "?page=2147483647&size=100",
+                        "?page=2147483648",
+                        "/not-a-uuid")) {
+            var response = get("/api/tenant/members" + suffix, token);
+            assertThat(response.statusCode()).isEqualTo(400);
+            assertThat(response.body()).isEqualTo("{\"error\":\"invalid_request\"}");
+        }
+    }
+
+    @Test
+    void clientTenantAndRoleValuesCannotChangeAdminScope() throws Exception {
+        String token = adminToken();
+        var response =
+                HTTP.send(
+                        HttpRequest.newBuilder(
+                                        uri(
+                                                "/api/tenant/members?tenantId="
+                                                        + otherTenant
+                                                        + "&role=ADMIN"))
+                                .header("Authorization", "Bearer " + token)
+                                .header("X-Tenant-Id", otherTenant.toString())
+                                .header("Content-Type", "application/json")
+                                .method(
+                                        "GET",
+                                        HttpRequest.BodyPublishers.ofString(
+                                                "{\"tenantId\":\""
+                                                        + otherTenant
+                                                        + "\",\"role\":\"ADMIN\"}"))
+                                .build(),
+                        HttpResponse.BodyHandlers.ofString());
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(json.readValue(response.body(), IdentityService.MemberPage.class).items())
+                .allMatch(item -> item.tenantId().equals(tenant));
+        assertThat(response.body()).doesNotContain(otherTenant.toString(), otherUser.toString());
+    }
+
+    @Test
+    void interleavedConcurrentRequestsRetainIndependentTenantPrincipals() throws Exception {
+        String a = adminToken();
+        String b = login.login("beta", "person@example.test", PASSWORD).accessToken();
+        var pending = new ArrayList<CompletableFuture<HttpResponse<String>>>();
+        var expected = new ArrayList<UUID>();
+        for (int index = 0; index < 12; index++) {
+            String token = index % 2 == 0 ? a : b;
+            expected.add(index % 2 == 0 ? tenant : otherTenant);
+            pending.add(
+                    HTTP.sendAsync(
+                            HttpRequest.newBuilder(uri("/api/tenant/members"))
+                                    .header("Authorization", "Bearer " + token)
+                                    .GET()
+                                    .build(),
+                            HttpResponse.BodyHandlers.ofString()));
+        }
+        for (int index = 0; index < pending.size(); index++) {
+            var response = pending.get(index).join();
+            assertThat(response.statusCode()).isEqualTo(200);
+            UUID tenantId = expected.get(index);
+            assertThat(json.readValue(response.body(), IdentityService.MemberPage.class).items())
+                    .hasSize(1)
+                    .allMatch(item -> item.tenantId().equals(tenantId));
+        }
+        assertThat(get("/api/me", null).statusCode()).isEqualTo(401);
+    }
+
+    @Test
+    void roleChangesAffectMemberRoutesWithoutReissuingToken() throws Exception {
+        String token = adminToken();
+        assertThat(get("/api/tenant/members", token).statusCode()).isEqualTo(200);
+        jdbc.sql("UPDATE auth.accounts SET role = 'MEMBER' WHERE id = ?").param(user).update();
+        assertThat(get("/api/tenant/members", token).statusCode()).isEqualTo(403);
+        assertThat(get("/api/tenant/members/" + user, token).statusCode()).isEqualTo(403);
+        assertThat(
+                        json.readValue(get("/api/me", token).body(), IdentityService.MeView.class)
+                                .role())
+                .isEqualTo("MEMBER");
+    }
+
+    private String adminToken() {
+        jdbc.sql("UPDATE auth.accounts SET role = 'ADMIN' WHERE id = ?").param(user).update();
+        return login.login("alpha", "person@example.test", PASSWORD).accessToken();
     }
 
     private JWTClaimsSet.Builder claims() {

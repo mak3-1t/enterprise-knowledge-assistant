@@ -27,6 +27,10 @@ public class AuthEvents {
         LOGIN_SUCCEEDED,
         LOGIN_DENIED,
         UNAUTHORIZED,
-        FORBIDDEN
+        FORBIDDEN,
+        ME_READ,
+        MEMBERS_LISTED,
+        MEMBER_READ,
+        MEMBER_NOT_FOUND
     }
 }
