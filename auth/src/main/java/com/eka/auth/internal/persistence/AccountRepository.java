@@ -67,6 +67,19 @@ public class AccountRepository {
                 .optional();
     }
 
+    /** Only active account/tenant pairs may become authenticated principals. */
+    public Optional<AccountSummary> findActiveIdentity(UUID tenantId, UUID accountId) {
+        return jdbc.sql(
+                        "SELECT "
+                                + SUMMARY_COLUMNS
+                                + " FROM auth.accounts a JOIN auth.tenants t ON t.id = a.tenant_id"
+                                + " WHERE a.tenant_id = :tenant AND a.id = :id AND a.active AND t.active")
+                .param("tenant", Objects.requireNonNull(tenantId))
+                .param("id", Objects.requireNonNull(accountId))
+                .query(AccountRepository::summary)
+                .optional();
+    }
+
     private static AccountSummary summary(ResultSet rs, int row) throws SQLException {
         return new AccountSummary(
                 rs.getObject("id", UUID.class),

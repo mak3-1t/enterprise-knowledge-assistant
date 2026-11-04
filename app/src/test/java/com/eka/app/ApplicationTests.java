@@ -24,6 +24,7 @@ class ApplicationTests {
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
+        TestSigningKeys.configure(registry);
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
@@ -47,7 +48,11 @@ class ApplicationTests {
                         .run(
                                 "--spring.datasource.url=" + POSTGRES.getJdbcUrl(),
                                 "--spring.datasource.username=" + POSTGRES.getUsername(),
-                                "--spring.datasource.password=" + POSTGRES.getPassword())) {
+                                "--spring.datasource.password=" + POSTGRES.getPassword(),
+                                "--eka.auth.private-key=" + TestSigningKeys.PRIVATE,
+                                "--eka.auth.public-key=" + TestSigningKeys.PUBLIC,
+                                "--eka.auth.issuer=" + TestSigningKeys.ISSUER,
+                                "--eka.auth.audience=" + TestSigningKeys.AUDIENCE)) {
             assertThat(restarted.getBean(Flyway.class).migrate().migrationsExecuted).isZero();
             assertThat(
                             restarted

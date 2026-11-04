@@ -25,6 +25,7 @@ docker compose --env-file .env -f deploy/docker/docker-compose.yml up -d
 Starts PostgreSQL + pgvector, Redis, Kafka (KRaft) and an S3-compatible object store.
 All ports are bound to 127.0.0.1. Check health with `docker compose ... ps`.
 ## Documentation
+- Local login and JWT: [docs/local-auth.md](docs/local-auth.md)
 - Auth database setup and integration tests: [docs/auth-persistence.md](docs/auth-persistence.md)
 - Architecture decisions: [docs/adr](docs/adr)
 - Sprint notes: [docs/sprint-notes](docs/sprint-notes)
