@@ -1,7 +1,7 @@
 # Requires PowerShell 7+, Java 21, Docker Desktop and a packaged application.
 # No connection to the persistent development database is made.
 [CmdletBinding()]
-param([string]$Jar = 'app/target/app-0.1.0-SNAPSHOT.jar')
+param([string]$Jar = 'app/target/app-0.1.0-SNAPSHOT.jar', [switch]$IncludeRegistration)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 if ($PSVersionTable.PSVersion.Major -lt 7) { throw 'Run with PowerShell 7 (pwsh).' }
@@ -49,7 +49,7 @@ function Get-DemoFileUri([string]$path) {
     $builder.Path = $path
     return $builder.Uri.AbsoluteUri
 }
-function Start-DemoApp($slug, $email, $role, $bootstrap = $true) {
+function Start-DemoApp($slug, $email, $role, $bootstrap = $true, $registration = $false) {
     Stop-DemoApp
     $start = [Diagnostics.ProcessStartInfo]::new('java')
     $start.UseShellExecute = $false
@@ -58,6 +58,7 @@ function Start-DemoApp($slug, $email, $role, $bootstrap = $true) {
     foreach ($arg in @('-jar', $jarPath, '--spring.profiles.active=dev', '--server.address=127.0.0.1', "--server.port=$script:port")) { $start.ArgumentList.Add($arg) }
     # Child-only configuration overrides inherited bootstrap, DB and signing settings.
     $settings = @{
+        EKA_AUTH_REGISTRATION_ENABLED = $registration.ToString().ToLowerInvariant()
         POSTGRES_USER = 'demo'; POSTGRES_PASSWORD = $script:password
         EKA_DB_URL = "jdbc:postgresql://127.0.0.1:$script:dbPort/demo"
         EKA_AUTH_PRIVATE_KEY = Get-DemoFileUri (Join-Path $temp 'private.pem')
@@ -175,6 +176,30 @@ try {
     $migrationCount = & docker exec $container psql -U demo -d demo -Atc 'SELECT count(*) FROM flyway_schema_history WHERE success AND version IS NOT NULL'
     if ($LASTEXITCODE -ne 0) { throw 'Migration history verification failed.' }
     Assert-Demo ($migrationCount.Trim() -eq '2') 'Flyway applies V1 and V2 exactly once across restarts'
+    if ($IncludeRegistration) {
+        $registration = @{ tenantSlug = 'signup-a'; email = 'signup@example.test'; password = $password }
+        $off = Request-Demo POST '/api/auth/register' 404 '' $registration
+        Assert-Demo ($off.error -eq 'not_found') 'Registration disabled by default'
+        Start-DemoApp '' '' '' $false $true
+        $registered = Request-Demo POST '/api/auth/register' 201 '' $registration
+        Assert-Demo ($registered.role -eq 'ADMIN' -and $registered.tenantSlug -eq 'signup-a') 'Opt-in registration creates ADMIN'
+        $signupA = Login-Demo 'signup-a' 'signup@example.test'
+        $identityA = Request-Demo GET '/api/me' 200 $signupA
+        Assert-Demo ($identityA.userId -eq $registered.userId -and $identityA.tenantId -eq $registered.tenantId) 'Registered ADMIN can login and read identity'
+        $duplicate = Request-Demo POST '/api/auth/register' 409 '' $registration
+        Assert-Demo ($duplicate.error -eq 'registration_conflict') 'Duplicate registration returns generic 409'
+        $registration.tenantSlug = 'signup-b'
+        $registeredB = Request-Demo POST '/api/auth/register' 201 '' $registration
+        $signupB = Login-Demo 'signup-b' 'signup@example.test'
+        $foreignA = Request-Demo GET "/api/tenant/members/$($registeredB.userId)" 404 $signupA
+        $foreignB = Request-Demo GET "/api/tenant/members/$($registered.userId)" 404 $signupB
+        Assert-Demo ($registeredB.tenantId -ne $registered.tenantId -and $foreignA.error -eq 'not_found' -and $foreignB.error -eq 'not_found') 'Registered tenants remain isolated in both directions'
+        Start-DemoApp '' '' '' $false $false
+        $registration.tenantSlug = 'must-not-be-created'
+        $offAgain = Request-Demo POST '/api/auth/register' 404 '' $registration
+        $stillActive = Request-Demo GET '/api/me' 200 $signupA
+        Assert-Demo ($offAgain.error -eq 'not_found' -and $stillActive.userId -eq $registered.userId) 'Disabling registration preserves existing login'
+    }
     Write-Host "Acceptance demo complete: $($results.Count) checks passed. No tokens or passwords printed."
 } finally {
     Stop-DemoApp

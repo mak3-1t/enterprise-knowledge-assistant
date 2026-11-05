@@ -26,7 +26,10 @@ public class HttpSecurityConfiguration {
                 .authorizeHttpRequests(
                         authorize ->
                                 authorize
-                                        .requestMatchers(HttpMethod.POST, "/api/auth/login")
+                                        .requestMatchers(
+                                                HttpMethod.POST,
+                                                "/api/auth/login",
+                                                "/api/auth/register")
                                         .permitAll()
                                         .requestMatchers(
                                                 HttpMethod.GET,

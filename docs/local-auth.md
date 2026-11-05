@@ -75,6 +75,7 @@ turn on HTTP-body/security debug logging for real credentials.
 ## Endpoint access
 
 - POST /api/auth/login: public login route.
+- POST /api/auth/register: opt-in tenant signup, disabled by default; see [registration](tenant-registration.md).
 - GET /actuator/health and its liveness/readiness paths: public health.
 - Other /actuator/** routes: require a valid token and current ADMIN role.
 - Other routes: require a valid token; API endpoints not yet implemented may then return 404.
@@ -106,7 +107,8 @@ containers. No dev accounts, local signing files or external issuer is required.
 Token/profile unit tests also run without Docker when explicitly selected; the full
 verify suite requires Docker and must pass without skipped tests before merge.
 
-No refresh tokens, registration, password reset or token denylist exists. Disabling
+No refresh tokens, password reset or token denylist exists. Tenant registration is
+explicitly opt-in and documented separately. Disabling
 an account/tenant prevents further token use; a password change alone does not revoke
 existing tokens. Key rotation, HTTPS deployment and rate limiting remain follow-up
 work. See [ADR-004](adr/0004-local-authentication.md) for tradeoffs and scope.

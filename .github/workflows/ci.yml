@@ -65,7 +65,7 @@ jobs:
 
       - name: Verify Sprint 1 acceptance demo
         shell: pwsh
-        run: ./scripts/sprint-01-demo.ps1
+        run: ./scripts/sprint-01-demo.ps1 -IncludeRegistration
 
       - name: Verify framework spike (no local model required)
         run: ./mvnw -B -f spikes/ai-framework/pom.xml verify
