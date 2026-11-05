@@ -108,3 +108,16 @@ the sprint goal on a fresh local setup without relying on hidden manual steps.
 
 ### Estimate and dependency
 2 points; depends on S1-03. Keep runtime behavior changes in the implementation stories.
+
+## Delivery tracking — 2026-11-04
+
+| Reference | GitHub issue | Evidence/status |
+|---|---|---|
+| S1-01 | #24 | Merged; tenant/account schema and PostgreSQL tests |
+| S1-02 | #26 | Merged; local login/JWT and ADR-004 |
+| S1-03 | #28 | Merged into main at a5d1532; developer verified full Maven build |
+| S1-04 | Not assigned here | [Demo guide](../sprint-01-demo.md) and executable script: developer live run PASS 13/13; CI/merge pending |
+
+The original proposal above is retained as the planning baseline. Sprint 1 is not
+closed until S1-04 has a recorded live result, green CI and a merged PR. Final
+retrospective is pending that verification; no velocity or personal feedback is inferred.

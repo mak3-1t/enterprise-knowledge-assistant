@@ -4,7 +4,7 @@
 
 Multi-tenant RAG platform for enterprise documents, built with Java 21, Spring Boot and Spring AI.
 
-> Status: early development (Sprint 0).
+> Status: Sprint 1 authentication and tenant APIs implemented; acceptance demo in progress.
 
 ## What it does
 Employees ask questions in natural language. The system answers with source citations,
@@ -25,6 +25,7 @@ docker compose --env-file .env -f deploy/docker/docker-compose.yml up -d
 Starts PostgreSQL + pgvector, Redis, Kafka (KRaft) and an S3-compatible object store.
 All ports are bound to 127.0.0.1. Check health with `docker compose ... ps`.
 ## Documentation
+- Sprint 1 acceptance demo: [docs/sprint-01-demo.md](docs/sprint-01-demo.md)
 - Tenant identity and member APIs: [docs/tenant-member-api.md](docs/tenant-member-api.md)
 - Local login and JWT: [docs/local-auth.md](docs/local-auth.md)
 - Auth database setup and integration tests: [docs/auth-persistence.md](docs/auth-persistence.md)
