@@ -8,6 +8,9 @@
 > ADMIN/EDITOR/VIEWER roles and defines MEMBER -> VIEWER migration. Other local
 > authentication decisions below remain in effect.
 
+> Registration update: [ADR-006](0006-tenant-registration.md) adds explicit opt-in
+> tenant signup, separate from dev bootstrap. Refresh tokens remain a separate story.
+
 ## Context
 
 EKA needs a repeatable login path before tenant member APIs and document ingestion.

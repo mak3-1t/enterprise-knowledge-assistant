@@ -52,7 +52,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.ObjectMapper;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "eka.auth.registration.enabled=false")
 @Testcontainers
 @ExtendWith(OutputCaptureExtension.class)
 @Import(AuthHttpTests.TimeConfiguration.class)
@@ -562,6 +564,24 @@ class AuthHttpTests {
                                 .query(Long.class)
                                 .single())
                 .isZero();
+    }
+
+    @Test
+    void registrationIsClosedWhenNotExplicitlyEnabled() throws Exception {
+        long before = jdbc.sql("SELECT count(*) FROM auth.tenants").query(Long.class).single();
+        var response =
+                HTTP.send(
+                        HttpRequest.newBuilder(uri("/api/auth/register"))
+                                .header("Content-Type", "application/json")
+                                .POST(
+                                        HttpRequest.BodyPublishers.ofString(
+                                                body("new-team", "admin@example.test", PASSWORD)))
+                                .build(),
+                        HttpResponse.BodyHandlers.ofString());
+        assertThat(response.statusCode()).isEqualTo(404);
+        assertThat(response.body()).isEqualTo("{\"error\":\"not_found\"}");
+        assertThat(jdbc.sql("SELECT count(*) FROM auth.tenants").query(Long.class).single())
+                .isEqualTo(before);
     }
 
     private String adminToken() {

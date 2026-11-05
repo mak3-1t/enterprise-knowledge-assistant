@@ -29,7 +29,7 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(AuthSettings.class)
+@EnableConfigurationProperties({AuthSettings.class, RegistrationSettings.class})
 public class AuthConfiguration {
     @Bean
     @ConditionalOnMissingBean(Clock.class)

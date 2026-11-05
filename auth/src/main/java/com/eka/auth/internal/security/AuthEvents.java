@@ -24,6 +24,11 @@ public class AuthEvents {
     }
 
     public enum Outcome {
+        REGISTRATION_SUCCEEDED,
+        REGISTRATION_DISABLED,
+        REGISTRATION_CONFLICT,
+        REGISTRATION_INVALID,
+        REGISTRATION_FAILED,
         LOGIN_SUCCEEDED,
         LOGIN_DENIED,
         UNAUTHORIZED,

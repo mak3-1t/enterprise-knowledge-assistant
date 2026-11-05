@@ -97,3 +97,17 @@ V1 and V2 each apply once across restarts. Maven Surefire reports total **50 tes
 The historical 13/13 result above belongs to the earlier ADMIN/MEMBER script.
 This story's GitHub CI and merge are pending; upload and other original Sprint 1
 requirements remain outside this auth demo.
+
+
+## Registration variant verification — 2026-11-05
+
+The developer ran scripts/sprint-01-demo.ps1 -IncludeRegistration after Maven verify:
+**21/21 PASS**. The six added checks cover disabled signup, explicit enable/create
+ADMIN, login/identity, duplicate conflict, new tenant isolation in both directions,
+and closing signup while preserving login. Full Maven verify completed in 1 minute
+29 seconds with **65 tests**, zero failures/errors/skips. CI/merge for this story
+remain pending. The 15/15 and 13/13 records above retain their historical scope.
+
+This variant performs seven application starts; the default remains five starts
+and 15 role checks. CI uses IncludeRegistration. Neither demo closes the remaining
+original Sprint 1 refresh/upload/OpenAPI scope.

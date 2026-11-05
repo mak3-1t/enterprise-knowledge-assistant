@@ -25,6 +25,8 @@ management:
 
 eka:
   auth:
+    registration:
+      enabled: ${EKA_AUTH_REGISTRATION_ENABLED:false}
     private-key: ${EKA_AUTH_PRIVATE_KEY}
     public-key: ${EKA_AUTH_PUBLIC_KEY}
     issuer: ${EKA_AUTH_ISSUER}
