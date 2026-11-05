@@ -40,6 +40,15 @@ function Stop-DemoApp {
         $script:process = $null
     }
 }
+function Get-DemoFileUri([string]$path) {
+    # A Unix absolute path cast to [Uri] can remain relative and yield an empty
+    # AbsoluteUri. Build an explicit file URI on both Linux and Windows.
+    $builder = [UriBuilder]::new()
+    $builder.Scheme = 'file'
+    $builder.Host = ''
+    $builder.Path = $path
+    return $builder.Uri.AbsoluteUri
+}
 function Start-DemoApp($slug, $email, $role, $bootstrap = $true) {
     Stop-DemoApp
     $start = [Diagnostics.ProcessStartInfo]::new('java')
@@ -51,8 +60,8 @@ function Start-DemoApp($slug, $email, $role, $bootstrap = $true) {
     $settings = @{
         POSTGRES_USER = 'demo'; POSTGRES_PASSWORD = $script:password
         EKA_DB_URL = "jdbc:postgresql://127.0.0.1:$script:dbPort/demo"
-        EKA_AUTH_PRIVATE_KEY = ([Uri](Join-Path $temp 'private.pem')).AbsoluteUri
-        EKA_AUTH_PUBLIC_KEY = ([Uri](Join-Path $temp 'public.pem')).AbsoluteUri
+        EKA_AUTH_PRIVATE_KEY = Get-DemoFileUri (Join-Path $temp 'private.pem')
+        EKA_AUTH_PUBLIC_KEY = Get-DemoFileUri (Join-Path $temp 'public.pem')
         EKA_AUTH_ISSUER = 'https://eka.demo.local'; EKA_AUTH_AUDIENCE = 'eka-api'
         EKA_AUTH_BOOTSTRAP_ENABLED = $bootstrap.ToString().ToLowerInvariant()
         EKA_AUTH_BOOTSTRAP_TENANT_SLUG = $slug; EKA_AUTH_BOOTSTRAP_EMAIL = $email
