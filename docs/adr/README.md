@@ -8,3 +8,4 @@
 | [0004](0004-local-authentication.md) | Local authentication and tenant identity | Accepted (MVP) |
 | [0005](0005-three-role-rbac.md) | Restore ADMIN / EDITOR / VIEWER roles | Accepted policy; implementation pending merge |
 | [0006](0006-tenant-registration.md) | Explicit opt-in tenant registration | Accepted policy; implementation pending merge |
+| [0007](0007-refresh-sessions.md) | Rotating refresh tokens and revocable sessions | Accepted policy; implementation pending merge |

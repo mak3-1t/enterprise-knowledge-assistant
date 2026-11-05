@@ -111,3 +111,16 @@ remain pending. The 15/15 and 13/13 records above retain their historical scope.
 This variant performs seven application starts; the default remains five starts
 and 15 role checks. CI uses IncludeRegistration. Neither demo closes the remaining
 original Sprint 1 refresh/upload/OpenAPI scope.
+
+
+## Session variant verification — 2026-11-05
+
+Developer execution with -IncludeRegistration -IncludeSessions: **25/25 PASS**.
+The four added checks verify seven-day lifetime, rotation without expiry extension,
+replay revocation and immediate logout while another session survives. Local Surefire
+reports confirm **80 tests** (41 auth, 39 app), zero failures/errors/skips.
+
+The default role script now checks three migrations (V1..V3). Historical 13/15/21-check
+records retain their earlier scope. CI uses both switches; this story's CI/merge
+are still pending. Document upload/OpenAPI and full original Sprint 1 acceptance
+remain separate work.

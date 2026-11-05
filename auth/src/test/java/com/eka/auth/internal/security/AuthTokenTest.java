@@ -32,6 +32,7 @@ class AuthTokenTest {
     private static final Clock CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
     private static final String USER = UUID.randomUUID().toString();
     private static final String TENANT = UUID.randomUUID().toString();
+    private static final String SESSION = UUID.randomUUID().toString();
     private final AuthConfiguration configuration = new AuthConfiguration();
 
     @BeforeAll
@@ -86,6 +87,7 @@ class AuthTokenTest {
                         claims().audience(List.of("wrong")).build(),
                         claims().subject("invalid").build(),
                         claims().claim("tenant_id", "invalid").build(),
+                        claims().claim("sid", "invalid").build(),
                         claims().expiresAt(NOW.plusSeconds(901)).build(),
                         claims().issuedAt(NOW.plusSeconds(1)).build());
         for (var claims : invalid) {
@@ -98,6 +100,7 @@ class AuthTokenTest {
                         .audience(List.of("eka-test"))
                         .subject(USER)
                         .claim("tenant_id", TENANT)
+                        .claim("sid", SESSION)
                         .issuedAt(NOW)
                         .build();
         assertThatThrownBy(() -> decoder.decode(token(key, noExpiry)))
@@ -111,12 +114,31 @@ class AuthTokenTest {
         assertThatThrownBy(() -> decoder.decode(token)).isInstanceOf(JwtException.class);
     }
 
+    @Test
+    void legacyTokenWithoutSessionIdIsRejected() throws Exception {
+        var key = rsa(keys);
+        var claims =
+                JwtClaimsSet.builder()
+                        .issuer("https://issuer.test")
+                        .audience(List.of("eka-test"))
+                        .subject(USER)
+                        .claim("tenant_id", TENANT)
+                        .issuedAt(NOW)
+                        .notBefore(NOW)
+                        .expiresAt(NOW.plusSeconds(900))
+                        .build();
+        var decoder = configuration.jwtDecoder(key, settings(keys, keys), CLOCK);
+        assertThatThrownBy(() -> decoder.decode(token(key, claims)))
+                .isInstanceOf(JwtException.class);
+    }
+
     private JwtClaimsSet.Builder claims() {
         return JwtClaimsSet.builder()
                 .issuer("https://issuer.test")
                 .audience(List.of("eka-test"))
                 .subject(USER)
                 .claim("tenant_id", TENANT)
+                .claim("sid", SESSION)
                 .issuedAt(NOW)
                 .notBefore(NOW)
                 .expiresAt(NOW.plusSeconds(900));

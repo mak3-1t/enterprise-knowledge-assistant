@@ -29,7 +29,8 @@ public class HttpSecurityConfiguration {
                                         .requestMatchers(
                                                 HttpMethod.POST,
                                                 "/api/auth/login",
-                                                "/api/auth/register")
+                                                "/api/auth/register",
+                                                "/api/auth/refresh")
                                         .permitAll()
                                         .requestMatchers(
                                                 HttpMethod.GET,
