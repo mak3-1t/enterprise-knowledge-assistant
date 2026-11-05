@@ -1,6 +1,9 @@
 # Sprint 1 proposed issue backlog
 
-Status: drafts for review, not GitHub issues. Use real issue numbers only after
+> Historical auth-subset backlog; full original Sprint 1 is still incomplete.
+> See [remaining stories](sprint-01-completion.md) and [roadmap](../roadmap.md).
+
+Historical status: drafts for review, not GitHub issues. Use real issue numbers only after
 creation. Estimates and scope are proposed; see [the plan](sprint-01-planning.md).
 Each story must satisfy CONTRIBUTING.md. Do not create retrospective results early.
 
@@ -116,8 +119,8 @@ the sprint goal on a fresh local setup without relying on hidden manual steps.
 | S1-01 | #24 | Merged; tenant/account schema and PostgreSQL tests |
 | S1-02 | #26 | Merged; local login/JWT and ADR-004 |
 | S1-03 | #28 | Merged into main at a5d1532; developer verified full Maven build |
-| S1-04 | Not assigned here | [Demo guide](../sprint-01-demo.md) and executable script: developer live run PASS 13/13; CI/merge pending |
+| S1-04 | Not assigned here | [Demo guide](../sprint-01-demo.md) and executable script: developer live run PASS 13/13; PR #30 merged, main CI passed |
 
-The original proposal above is retained as the planning baseline. Sprint 1 is not
-closed until S1-04 has a recorded live result, green CI and a merged PR. Final
-retrospective is pending that verification; no velocity or personal feedback is inferred.
+The auth-subset baseline above is retained as history. PR #30 is merged and main CI
+has passed; full original Sprint 1 acceptance remains pending the completion backlog.
+Issue #28 remains open due to an incomplete Closes reference in PR #29.

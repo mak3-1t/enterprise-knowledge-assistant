@@ -1,4 +1,8 @@
-# Sprint 1 technical retrospective
+# Sprint 1 auth-subset technical retrospective
+
+> Scope correction, 2026-11-05: this retrospective covers delivered auth/account
+> work. It does not close original Sprint 1, which includes upload and other gaps.
+> See [roadmap](../roadmap.md) and [completion backlog](sprint-01-completion.md).
 
 Date: 2026-11-04. Based on merged implementation, developer-supplied build output
 and the live acceptance demo. This is a technical review, not a retrospective meeting.
@@ -58,3 +62,10 @@ No velocity, elapsed engineering time or model-quality score is inferred.
 3. Carry the tenant boundary into document reads/writes and negative tests; account
    API isolation alone is insufficient evidence for future document access.
 4. Define citation and no-answer criteria before accepting RAG quality work.
+
+## Delivery update — 2026-11-05
+
+PR #30 is merged in main at 7bb2c62, including the Linux file-URI fix for demo keys.
+The developer confirmed completion and supplied synchronized clean main output.
+This supersedes the pending-merge wording in the original retrospective above.
+Sprint 2 planning is tracked in sprint-02-planning.md and sprint-02-backlog.md.

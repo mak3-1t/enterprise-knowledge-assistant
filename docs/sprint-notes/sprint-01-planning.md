@@ -1,5 +1,10 @@
 # Sprint 1 planning — proposal
 
+> Reconciled 2026-11-05: this document is the historical auth-subset plan, not the
+> full original Sprint 1 scope. Its four implementation stories are delivered.
+> Original Sprint 1 also requires registration, refresh, three-role RBAC, upload
+> and OpenAPI; see [roadmap](../roadmap.md) and [completion backlog](sprint-01-completion.md).
+
 Prepared: 2026-11-02. Status: proposed scope for developer review.
 Sprint dates and capacity have not been agreed. Estimates are relative sizing,
 not a delivery-time commitment. No implementation has started under this plan.

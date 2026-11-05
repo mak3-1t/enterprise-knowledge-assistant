@@ -1,4 +1,7 @@
-# Sprint 1 acceptance demo (S1-04)
+# Sprint 1 auth-subset acceptance demo (S1-04)
+
+This verifies delivered auth/account flows, not the full original Sprint 1 scope.
+See [roadmap and outstanding requirements](roadmap.md).
 
 ## Scope and prerequisites
 
@@ -78,8 +81,8 @@ Manual API requests and expected response shapes are in
   The live result above is the developer's execution, not an agent-run claim.
 - PowerShell 7 was available through its absolute local executable path; `pwsh` was
   not on the developer terminal PATH. Java/Docker version output was not captured.
-- S1-04 CI and merge: pending PR. The workflow now runs this demo after Maven verify.
-  Sprint closure still requires green Repository checks / Build and test and merge.
+- S1-04 PR #30 merged; main CI run 41987353426 passed, including this demo.
+  This completes the auth-subset delivery; original Sprint 1 scope remains incomplete.
 
 See the [technical retrospective](sprint-notes/sprint-01-retro.md). No credentials,
 live tokens, personal feedback or unmeasured performance claims are recorded here.
