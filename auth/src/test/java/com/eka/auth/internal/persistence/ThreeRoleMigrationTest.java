@@ -42,7 +42,8 @@ class ThreeRoleMigrationTest {
         var adminBefore = row(jdbc, admin);
         var tenantsBefore = jdbc.sql("SELECT * FROM auth.tenants ORDER BY id").query().listOfRows();
 
-        var current = Flyway.configure().dataSource(dataSource).cleanDisabled(true).load();
+        var current =
+                Flyway.configure().dataSource(dataSource).target("2").cleanDisabled(true).load();
         assertThat(current.migrate().migrationsExecuted).isEqualTo(1);
         assertThat(current.info().current().getVersion().getVersion()).isEqualTo("2");
         Map<String, Object> expected = new HashMap<>(memberBefore);

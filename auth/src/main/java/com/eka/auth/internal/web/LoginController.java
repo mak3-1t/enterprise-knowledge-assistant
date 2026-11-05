@@ -7,9 +7,11 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.nio.charset.StandardCharsets;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -58,6 +60,18 @@ public class LoginController {
     @ExceptionHandler(InvalidPasswordLength.class)
     ResponseEntity<ErrorResponse> invalidPassword() {
         return malformed();
+    }
+
+    @ExceptionHandler(DataAccessException.class)
+    ResponseEntity<ErrorResponse> unavailable() {
+        return ResponseEntity.status(503)
+                .header("Cache-Control", "no-store")
+                .body(new ErrorResponse("authentication_unavailable"));
+    }
+
+    @ExceptionHandler(JwtException.class)
+    ResponseEntity<ErrorResponse> signingUnavailable() {
+        return unavailable();
     }
 
     private ResponseEntity<ErrorResponse> malformed() {

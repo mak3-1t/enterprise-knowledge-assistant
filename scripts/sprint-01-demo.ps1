@@ -1,7 +1,7 @@
 # Requires PowerShell 7+, Java 21, Docker Desktop and a packaged application.
 # No connection to the persistent development database is made.
 [CmdletBinding()]
-param([string]$Jar = 'app/target/app-0.1.0-SNAPSHOT.jar', [switch]$IncludeRegistration)
+param([string]$Jar = 'app/target/app-0.1.0-SNAPSHOT.jar', [switch]$IncludeRegistration, [switch]$IncludeSessions)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 if ($PSVersionTable.PSVersion.Major -lt 7) { throw 'Run with PowerShell 7 (pwsh).' }
@@ -175,7 +175,7 @@ try {
     Assert-Demo ($again.userId -eq $meA.userId -and @($list.items).Count -eq 3) 'Restart preserves identity and does not duplicate accounts'
     $migrationCount = & docker exec $container psql -U demo -d demo -Atc 'SELECT count(*) FROM flyway_schema_history WHERE success AND version IS NOT NULL'
     if ($LASTEXITCODE -ne 0) { throw 'Migration history verification failed.' }
-    Assert-Demo ($migrationCount.Trim() -eq '2') 'Flyway applies V1 and V2 exactly once across restarts'
+    Assert-Demo ($migrationCount.Trim() -eq '3') 'Flyway applies V1 through V3 exactly once across restarts'
     if ($IncludeRegistration) {
         $registration = @{ tenantSlug = 'signup-a'; email = 'signup@example.test'; password = $password }
         $off = Request-Demo POST '/api/auth/register' 404 '' $registration
@@ -199,6 +199,24 @@ try {
         $offAgain = Request-Demo POST '/api/auth/register' 404 '' $registration
         $stillActive = Request-Demo GET '/api/me' 200 $signupA
         Assert-Demo ($offAgain.error -eq 'not_found' -and $stillActive.userId -eq $registered.userId) 'Disabling registration preserves existing login'
+    }
+    if ($IncludeSessions) {
+        $loginBody = @{ tenantSlug = 'demo-a'; email = 'admin@example.test'; password = $password }
+        $sessionPair = Request-Demo POST '/api/auth/login' 200 '' $loginBody
+        Assert-Demo ($sessionPair.expiresIn -eq 900 -and $sessionPair.refreshExpiresIn -eq 604800) 'Login starts a seven-day session with refresh token'
+        $rotated = Request-Demo POST '/api/auth/refresh' 200 '' @{ refreshToken = $sessionPair.refreshToken }
+        $rotatedMe = Request-Demo GET '/api/me' 200 $rotated.accessToken
+        Assert-Demo ($rotated.refreshToken -ne $sessionPair.refreshToken -and $rotated.refreshExpiresIn -le 604800 -and $rotatedMe.userId -eq $meA.userId) 'Refresh rotates the secret without extending session lifetime'
+        $null = Request-Demo POST '/api/auth/refresh' 401 '' @{ refreshToken = $sessionPair.refreshToken }
+        $null = Request-Demo GET '/api/me' 401 $rotated.accessToken
+        $null = Request-Demo POST '/api/auth/refresh' 401 '' @{ refreshToken = $rotated.refreshToken }
+        Assert-Demo $true 'Refresh replay revokes the entire session immediately'
+        $logoutPair = Request-Demo POST '/api/auth/login' 200 '' $loginBody
+        $null = Request-Demo POST '/api/auth/logout' 204 $logoutPair.accessToken
+        $null = Request-Demo GET '/api/me' 401 $logoutPair.accessToken
+        $null = Request-Demo POST '/api/auth/refresh' 401 '' @{ refreshToken = $logoutPair.refreshToken }
+        $independent = Request-Demo GET '/api/me' 200 $a
+        Assert-Demo ($independent.userId -eq $meA.userId) 'Logout revokes access and refresh while another session survives'
     }
     Write-Host "Acceptance demo complete: $($results.Count) checks passed. No tokens or passwords printed."
 } finally {

@@ -589,15 +589,9 @@ class AuthHttpTests {
         return login.login("alpha", "person@example.test", PASSWORD).accessToken();
     }
 
-    private JWTClaimsSet.Builder claims() {
-        return new JWTClaimsSet.Builder()
-                .subject(user.toString())
-                .claim("tenant_id", tenant.toString())
-                .issuer(TestSigningKeys.ISSUER)
-                .audience(TestSigningKeys.AUDIENCE)
-                .issueTime(Date.from(NOW))
-                .notBeforeTime(Date.from(NOW))
-                .expirationTime(Date.from(NOW.plusSeconds(900)));
+    private JWTClaimsSet.Builder claims() throws Exception {
+        String token = login.login("alpha", "person@example.test", PASSWORD).accessToken();
+        return new JWTClaimsSet.Builder(SignedJWT.parse(token).getJWTClaimsSet());
     }
 
     private String signed(KeyPair keys, JWSAlgorithm algorithm, JWTClaimsSet claims)

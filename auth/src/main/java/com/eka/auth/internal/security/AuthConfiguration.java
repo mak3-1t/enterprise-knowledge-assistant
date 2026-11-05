@@ -87,6 +87,9 @@ public class AuthConfiguration {
                         || !UUID.fromString(jwt.getClaimAsString("tenant_id"))
                                 .toString()
                                 .equals(jwt.getClaimAsString("tenant_id"))
+                        || !UUID.fromString(jwt.getClaimAsString("sid"))
+                                .toString()
+                                .equals(jwt.getClaimAsString("sid"))
                         || !jwt.getAudience().contains(settings.audience())
                         || jwt.getIssuedAt() == null
                         || jwt.getExpiresAt() == null

@@ -50,7 +50,7 @@ class AccountRepositoryTest {
     void secondMigrationPreservesDataAndHistory() {
         UUID id = account(tenantA, "person@example.test", "ADMIN");
         assertThat(flyway.migrate().migrationsExecuted).isZero();
-        assertThat(flyway.info().applied()).hasSize(2);
+        assertThat(flyway.info().applied()).hasSize(3);
         assertThat(repository.findById(tenantA, id)).isPresent();
         assertThat(jdbc.sql("SELECT count(*) FROM auth.tenants").query(Long.class).single())
                 .isEqualTo(2L);

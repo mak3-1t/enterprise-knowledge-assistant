@@ -11,6 +11,10 @@
 > Registration update: [ADR-006](0006-tenant-registration.md) adds explicit opt-in
 > tenant signup, separate from dev bootstrap. Refresh tokens remain a separate story.
 
+> Session update: [ADR-007](0007-refresh-sessions.md) extends login with seven-day
+> rotating refresh tokens and immediately revocable sid-bound access. Historical
+> stateless-token/refresh-deferred notes below are superseded for that scope.
+
 ## Context
 
 EKA needs a repeatable login path before tenant member APIs and document ingestion.

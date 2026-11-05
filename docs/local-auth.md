@@ -66,7 +66,8 @@ $headers = @{ Authorization = "Bearer $($session.accessToken)" }
 Invoke-RestMethod -Uri http://localhost:8080/actuator/info -Headers $headers
 ```
 
-Login returns accessToken, tokenType=Bearer and expiresIn=900. Invalid credentials
+Login returns accessToken, tokenType=Bearer, expiresIn (up to 900), refreshToken and
+refreshExpiresIn (initially 604800). See [refresh and logout](refresh-sessions.md). Invalid credentials
 or inactive identity return generic JSON 401; malformed input returns JSON 400.
 Passwords are not trimmed. Emails must be valid input; lookup is case-insensitive.
 No credentials or tokens are intentionally included in application logs; do not
@@ -75,6 +76,8 @@ turn on HTTP-body/security debug logging for real credentials.
 ## Endpoint access
 
 - POST /api/auth/login: public login route.
+- POST /api/auth/refresh: refresh-secret authentication, no Bearer header needed.
+- POST /api/auth/logout: valid Bearer required; immediately revokes its session.
 - POST /api/auth/register: opt-in tenant signup, disabled by default; see [registration](tenant-registration.md).
 - GET /actuator/health and its liveness/readiness paths: public health.
 - Other /actuator/** routes: require a valid token and current ADMIN role.
@@ -107,10 +110,9 @@ containers. No dev accounts, local signing files or external issuer is required.
 Token/profile unit tests also run without Docker when explicitly selected; the full
 verify suite requires Docker and must pass without skipped tests before merge.
 
-No refresh tokens, password reset or token denylist exists. Tenant registration is
-explicitly opt-in and documented separately. Disabling
-an account/tenant prevents further token use; a password change alone does not revoke
-existing tokens. Key rotation, HTTPS deployment and rate limiting remain follow-up
-work. See [ADR-004](adr/0004-local-authentication.md) for tradeoffs and scope.
+Seven-day rotating refresh sessions and immediate logout are documented in
+[refresh-sessions.md](refresh-sessions.md). Public password reset and logout-all
+remain separate work. Tenant registration stays explicitly opt-in. Deployment HTTPS,
+rate limiting and production key management remain follow-up work.
 
 Authentication outcomes are counted in Micrometer eka.auth.events with a bounded outcome label only; no user, tenant or credential labels are recorded. The metrics endpoint is not exposed by default.
