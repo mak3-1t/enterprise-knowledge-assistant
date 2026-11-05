@@ -50,7 +50,7 @@ class AccountRepositoryTest {
     void secondMigrationPreservesDataAndHistory() {
         UUID id = account(tenantA, "person@example.test", "ADMIN");
         assertThat(flyway.migrate().migrationsExecuted).isZero();
-        assertThat(flyway.info().applied()).hasSize(1);
+        assertThat(flyway.info().applied()).hasSize(2);
         assertThat(repository.findById(tenantA, id)).isPresent();
         assertThat(jdbc.sql("SELECT count(*) FROM auth.tenants").query(Long.class).single())
                 .isEqualTo(2L);
@@ -59,7 +59,7 @@ class AccountRepositoryTest {
     @Test
     void accountLookupIsIsolatedInBothDirections() {
         UUID a = account(tenantA, "same@example.test", "ADMIN");
-        UUID b = account(tenantB, "same@example.test", "MEMBER");
+        UUID b = account(tenantB, "same@example.test", "VIEWER");
         assertThat(repository.findById(tenantA, a))
                 .get()
                 .satisfies(
@@ -80,7 +80,7 @@ class AccountRepositoryTest {
     @Test
     void paginatedListsNeverContainTheOtherTenant() {
         account(tenantA, "one@example.test", "ADMIN");
-        account(tenantA, "two@example.test", "MEMBER");
+        account(tenantA, "two@example.test", "VIEWER");
         UUID b = account(tenantB, "one@example.test", "ADMIN");
         var first = repository.findMembers(tenantA, 1, 0);
         var second = repository.findMembers(tenantA, 1, 1);
@@ -98,7 +98,7 @@ class AccountRepositoryTest {
     @Test
     void credentialsAreScopedAndEmailIsNormalizedAtLookup() {
         UUID a = account(tenantA, "same@example.test", "ADMIN");
-        UUID b = account(tenantB, "same@example.test", "MEMBER");
+        UUID b = account(tenantB, "same@example.test", "VIEWER");
         var credentialA =
                 repository.findCredentials("tenant-a", " SAME@EXAMPLE.TEST ").orElseThrow();
         assertThat(credentialA.account().id()).isEqualTo(a);
@@ -120,7 +120,7 @@ class AccountRepositoryTest {
 
     @Test
     void inactiveFlagsAreAvailableForFutureAuthenticationChecks() {
-        UUID id = account(tenantA, "inactive@example.test", "MEMBER");
+        UUID id = account(tenantA, "inactive@example.test", "VIEWER");
         jdbc.sql("UPDATE auth.tenants SET active = false WHERE id = ?").param(tenantA).update();
         jdbc.sql("UPDATE auth.accounts SET active = false WHERE id = ?").param(id).update();
         var credentials =
@@ -138,15 +138,15 @@ class AccountRepositoryTest {
 
     @Test
     void emailIsUniqueWithinTenantButCanRepeatAcrossTenants() {
-        account(tenantA, "same@example.test", "MEMBER");
-        account(tenantB, "same@example.test", "MEMBER");
+        account(tenantA, "same@example.test", "VIEWER");
+        account(tenantB, "same@example.test", "VIEWER");
         assertThatThrownBy(() -> account(tenantA, "same@example.test", "ADMIN"))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     void invalidTenantReferenceAndRoleAreRejected() {
-        assertThatThrownBy(() -> account(UUID.randomUUID(), "person@example.test", "MEMBER"))
+        assertThatThrownBy(() -> account(UUID.randomUUID(), "person@example.test", "VIEWER"))
                 .isInstanceOf(DataIntegrityViolationException.class);
         assertThatThrownBy(() -> account(tenantA, "person@example.test", "SUPERADMIN"))
                 .isInstanceOf(DataIntegrityViolationException.class);
@@ -156,7 +156,7 @@ class AccountRepositoryTest {
     void nonNormalizedOrBlankEmailIsRejectedByDatabase() {
         for (String email :
                 new String[] {"UPPER@example.test", " person@example.test ", "", "invalid"}) {
-            assertThatThrownBy(() -> account(tenantA, email, "MEMBER"))
+            assertThatThrownBy(() -> account(tenantA, email, "VIEWER"))
                     .isInstanceOf(DataIntegrityViolationException.class);
         }
     }
@@ -169,14 +169,14 @@ class AccountRepositoryTest {
 
     @Test
     void requiredFieldsAndNonemptyHashAreEnforcedWithoutPlaintextColumn() {
-        assertThatThrownBy(() -> account(null, "person@example.test", "MEMBER"))
+        assertThatThrownBy(() -> account(null, "person@example.test", "VIEWER"))
                 .isInstanceOf(DataIntegrityViolationException.class);
         assertThatThrownBy(
                         () ->
                                 jdbc.sql(
                                                 """
                 INSERT INTO auth.accounts (id, tenant_id, email, password_hash, role)
-                VALUES (?, ?, ?, '', 'MEMBER')
+                VALUES (?, ?, ?, '', 'VIEWER')
                 """)
                                         .param(UUID.randomUUID())
                                         .param(tenantA)
@@ -207,6 +207,17 @@ class AccountRepositoryTest {
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> repository.findById(null, UUID.randomUUID()))
                 .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void currentRolesAreAcceptedAndLegacyMemberIsRejected() {
+        for (String role : new String[] {"ADMIN", "EDITOR", "VIEWER"}) {
+            UUID id = account(tenantA, role.toLowerCase() + "@example.test", role);
+            assertThat(repository.findById(tenantA, id).orElseThrow().role().name())
+                    .isEqualTo(role);
+        }
+        assertThatThrownBy(() -> account(tenantA, "legacy@example.test", "MEMBER"))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     private static UUID tenant(String slug) {

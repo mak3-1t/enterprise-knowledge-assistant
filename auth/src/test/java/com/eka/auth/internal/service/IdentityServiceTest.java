@@ -30,11 +30,14 @@ class IdentityServiceTest {
     private final UUID user = UUID.randomUUID();
 
     @Test
-    void memberRoleCannotReadMembersEvenWhenCalledWithoutHttpFilter() {
-        identity("MEMBER");
-        assertThatThrownBy(() -> service.members(0, 20)).isInstanceOf(AccessDeniedException.class);
-        assertThatThrownBy(() -> service.member(UUID.randomUUID()))
-                .isInstanceOf(AccessDeniedException.class);
+    void nonAdminRolesCannotReadMembersEvenWhenCalledWithoutHttpFilter() {
+        for (String role : List.of("EDITOR", "VIEWER")) {
+            identity(role);
+            assertThatThrownBy(() -> service.members(0, 20))
+                    .isInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> service.member(UUID.randomUUID()))
+                    .isInstanceOf(AccessDeniedException.class);
+        }
         verifyNoInteractions(accounts);
     }
 
@@ -64,18 +67,18 @@ class IdentityServiceTest {
 
     @Test
     void unavailableIdentityIsRejectedByMe() {
-        identity("MEMBER");
+        identity("VIEWER");
         when(accounts.findActiveIdentity(tenant, user)).thenReturn(Optional.empty());
         assertThatThrownBy(service::me).isInstanceOf(BadCredentialsException.class);
     }
 
     @Test
     void meUsesCurrentAccountRecordAndOnlySafeFields() {
-        identity("MEMBER");
+        identity("VIEWER");
         when(accounts.findActiveIdentity(tenant, user)).thenReturn(Optional.of(summary()));
         assertThat(service.me())
                 .isEqualTo(
-                        new IdentityService.MeView(user, tenant, "member@example.test", "MEMBER"));
+                        new IdentityService.MeView(user, tenant, "member@example.test", "VIEWER"));
     }
 
     @Test
@@ -108,7 +111,7 @@ class IdentityServiceTest {
                 user,
                 tenant,
                 "member@example.test",
-                AccountRole.MEMBER,
+                AccountRole.VIEWER,
                 true,
                 Instant.parse("2026-01-01T00:00:00Z"));
     }

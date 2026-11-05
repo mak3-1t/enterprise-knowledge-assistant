@@ -44,7 +44,7 @@ public class DevAccountProvisioner implements ApplicationRunner {
                 || email.length() > 254
                 || password.length() < 12
                 || password.getBytes(StandardCharsets.UTF_8).length > 72
-                || !(role.equals("ADMIN") || role.equals("MEMBER"))) {
+                || !(role.equals("ADMIN") || role.equals("EDITOR") || role.equals("VIEWER"))) {
             throw new IllegalStateException("Invalid dev bootstrap configuration");
         }
         jdbc.sql("INSERT INTO auth.tenants (id, slug) VALUES (?, ?) ON CONFLICT (slug) DO NOTHING")

@@ -4,7 +4,8 @@
 
 The auth module owns `auth.tenants` and `auth.accounts`. V1 creates the schema,
 UUID primary keys, tenant/account foreign key, timestamps, active flags and the
-ADMIN/MEMBER role constraint. Tenant slug is a unique lower-case URL-style name.
+original ADMIN/MEMBER role constraint. V2 upgrades roles to ADMIN/EDITOR/VIEWER,
+converting existing MEMBER to VIEWER (see [migration guide](auth-roles.md)). Tenant slug is a unique lower-case URL-style name.
 Account email must be trimmed/lower-case and unique within a tenant; the same
 email may occur in a different tenant. A tenant with accounts cannot be deleted
 without explicitly handling those accounts (no cascading deletion).
