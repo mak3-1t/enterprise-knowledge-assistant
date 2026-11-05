@@ -85,6 +85,16 @@ GET /api/me and tenant ADMIN member endpoints are documented in [tenant-member-a
 The test-only identity endpoint is absent from packaged code. AuthenticatedAccount / CurrentAccount
 is the small public module API used by the production endpoints.
 
+## Roles and upgrades
+
+Supported roles are ADMIN, EDITOR and VIEWER. Dev bootstrap accepts only these
+values; existing MEMBER accounts become VIEWER through Flyway V2 on startup.
+Account IDs, passwords, active flags and tenant ownership are preserved. Existing
+JWTs use the current database role on the next request, without token reissue.
+Member administration and non-health actuator routes remain ADMIN-only. Both
+EDITOR and VIEWER can read their own /api/me but receive 403 on those routes.
+See [role migration and policy](auth-roles.md) before upgrading a local database.
+
 ## Tests and limitations
 
 ```powershell

@@ -131,17 +131,21 @@ try {
     $listener.Start(); $script:port = $listener.LocalEndpoint.Port; $listener.Stop()
     $script:base = "http://127.0.0.1:$port"
     Start-DemoApp 'demo-a' 'admin@example.test' 'ADMIN'
-    Start-DemoApp 'demo-a' 'member@example.test' 'MEMBER'
+    Start-DemoApp 'demo-a' 'viewer@example.test' 'VIEWER'
+    Start-DemoApp 'demo-a' 'editor@example.test' 'EDITOR'
     Start-DemoApp 'demo-b' 'admin@example.test' 'ADMIN'
     $a = Login-Demo 'demo-a' 'admin@example.test'
     $b = Login-Demo 'demo-b' 'admin@example.test'
-    $member = Login-Demo 'demo-a' 'member@example.test'
+    $viewer = Login-Demo 'demo-a' 'viewer@example.test'
+    $editor = Login-Demo 'demo-a' 'editor@example.test'
     $meA = Request-Demo GET '/api/me' 200 $a
     $meB = Request-Demo GET '/api/me' 200 $b
     Assert-Demo ($meA.tenantId -ne $meB.tenantId -and $meA.role -eq 'ADMIN' -and $meB.role -eq 'ADMIN') 'Two distinct tenant ADMIN identities'
-    $memberMe = Request-Demo GET '/api/me' 200 $member
-    Assert-Demo ($memberMe.role -eq 'MEMBER' -and $memberMe.tenantId -eq $meA.tenantId) 'MEMBER identity belongs to A'
-    foreach ($pair in @(@($a,$meA,2), @($b,$meB,1))) {
+    $viewerMe = Request-Demo GET '/api/me' 200 $viewer
+    Assert-Demo ($viewerMe.role -eq 'VIEWER' -and $viewerMe.tenantId -eq $meA.tenantId) 'VIEWER identity belongs to A'
+    $editorMe = Request-Demo GET '/api/me' 200 $editor
+    Assert-Demo ($editorMe.role -eq 'EDITOR' -and $editorMe.tenantId -eq $meA.tenantId) 'EDITOR identity belongs to A'
+    foreach ($pair in @(@($a,$meA,3), @($b,$meB,1))) {
         $list = Request-Demo GET '/api/tenant/members?page=0&size=20' 200 $pair[0]
         Assert-Demo (@($list.items).Count -eq $pair[2] -and @($list.items | Where-Object tenantId -ne $pair[1].tenantId).Count -eq 0) 'List contains only own tenant fixtures'
         $page0 = Request-Demo GET '/api/tenant/members?page=0&size=1' 200 $pair[0]
@@ -153,9 +157,12 @@ try {
     $foreignB = Request-Demo GET "/api/tenant/members/$($meA.userId)" 404 $b
     $missing = Request-Demo GET "/api/tenant/members/$([guid]::NewGuid())" 404 $a
     Assert-Demo (($foreignA | ConvertTo-Json -Compress) -eq ($missing | ConvertTo-Json -Compress) -and ($foreignB | ConvertTo-Json -Compress) -eq ($missing | ConvertTo-Json -Compress)) 'Both foreign directions match missing-ID JSON 404'
-    $null = Request-Demo GET '/api/tenant/members' 403 $member
-    $null = Request-Demo GET "/api/tenant/members/$($meA.userId)" 403 $member
-    Assert-Demo $true 'MEMBER list and detail return 403'
+    $null = Request-Demo GET '/api/tenant/members' 403 $viewer
+    $null = Request-Demo GET "/api/tenant/members/$($meA.userId)" 403 $viewer
+    Assert-Demo $true 'VIEWER list and detail return 403'
+    $null = Request-Demo GET '/api/tenant/members' 403 $editor
+    $null = Request-Demo GET "/api/tenant/members/$($meA.userId)" 403 $editor
+    Assert-Demo $true 'EDITOR list and detail return 403'
     $null = Request-Demo GET '/api/me' 401
     $null = Request-Demo GET '/api/me' 401 'invalid-token'
     Assert-Demo $true 'Missing and invalid token return 401'
@@ -164,10 +171,10 @@ try {
     $a = Login-Demo 'demo-a' 'admin@example.test'
     $again = Request-Demo GET '/api/me' 200 $a
     $list = Request-Demo GET '/api/tenant/members' 200 $a
-    Assert-Demo ($again.userId -eq $meA.userId -and @($list.items).Count -eq 2) 'Restart preserves identity and does not duplicate accounts'
+    Assert-Demo ($again.userId -eq $meA.userId -and @($list.items).Count -eq 3) 'Restart preserves identity and does not duplicate accounts'
     $migrationCount = & docker exec $container psql -U demo -d demo -Atc 'SELECT count(*) FROM flyway_schema_history WHERE success AND version IS NOT NULL'
     if ($LASTEXITCODE -ne 0) { throw 'Migration history verification failed.' }
-    Assert-Demo ($migrationCount.Trim() -eq '1') 'Flyway applies V1 exactly once across restarts'
+    Assert-Demo ($migrationCount.Trim() -eq '2') 'Flyway applies V1 and V2 exactly once across restarts'
     Write-Host "Acceptance demo complete: $($results.Count) checks passed. No tokens or passwords printed."
 } finally {
     Stop-DemoApp

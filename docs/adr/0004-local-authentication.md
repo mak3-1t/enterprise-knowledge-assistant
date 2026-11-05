@@ -4,6 +4,10 @@
 - Date: 2026-11-04
 - Issue: #26 (Sprint 1 S1-02)
 
+> Role-policy update: [ADR-005](0005-three-role-rbac.md) restores the original
+> ADMIN/EDITOR/VIEWER roles and defines MEMBER -> VIEWER migration. Other local
+> authentication decisions below remain in effect.
+
 ## Context
 
 EKA needs a repeatable login path before tenant member APIs and document ingestion.

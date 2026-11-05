@@ -11,7 +11,7 @@ never from a client-supplied tenant header, query parameter or request body.
 
 | Request | Access | Result |
 |---|---|---|
-| GET /api/me | Active authenticated ADMIN or MEMBER | 200 with userId, tenantId, email and current role |
+| GET /api/me | Active authenticated ADMIN, EDITOR or VIEWER | 200 with userId, tenantId, email and current role |
 | GET /api/tenant/members | Current tenant ADMIN | 200 with items, page and size |
 | GET /api/tenant/members/{id} | Current tenant ADMIN | 200 with a safe member summary; absent or foreign ID gives identical JSON 404 |
 
@@ -24,7 +24,7 @@ Successful identity/member responses and controller errors use Cache-Control:
 no-store. Unauthorized requests return JSON 401, insufficient roles JSON 403,
 and missing/foreign IDs both return {"error":"not_found"}. Malformed UUIDs or
 pagination parameters return {"error":"invalid_request"} with 400 for ADMIN.
-MEMBER is rejected with 403 before member ID/query binding or data access.
+EDITOR and VIEWER are rejected with 403 before member ID/query binding or data access.
 
 ## Pagination
 
@@ -60,7 +60,7 @@ $memberId = $page.items[0].id
 Invoke-RestMethod "http://localhost:8080/api/tenant/members/$memberId" -Headers $headers
 ```
 
-Member routes require ADMIN; a MEMBER can still call /api/me. To verify isolation,
+Member routes require ADMIN; EDITOR and VIEWER can still call /api/me. To verify isolation,
 use an ID obtained separately while signed in to tenant B, then request it with
 tenant A's ADMIN token. The result must match a random nonexistent ID: JSON 404.
 Do not post live tokens, account lists or email addresses in logs/issues.
@@ -85,7 +85,7 @@ unauthorized/forbidden outcomes cover security denials.
 
 Unit tests verify service-level role checks before database access, scope/offset
 arguments, safe identity mapping and pagination overflow. PostgreSQL-backed HTTP
-tests cover A/B lists and IDs, MEMBER denials, inactive/expired identities,
+tests cover A/B lists and IDs, EDITOR/VIEWER denials, inactive/expired identities,
 forged headers/query/body, default and maximum pages, role changes and concurrent
 interleaved requests. They extend the existing disposable-container/key fixtures.
 The persistent dev database, external identity providers and Ollama are not required.

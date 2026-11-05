@@ -93,7 +93,7 @@ class AuthHttpTests {
         jdbc.sql("DELETE FROM auth.tenants").update();
         tenant = tenant("alpha");
         otherTenant = tenant("beta");
-        user = account(tenant, "person@example.test", "MEMBER");
+        user = account(tenant, "person@example.test", "VIEWER");
         otherUser = account(otherTenant, "person@example.test", "ADMIN");
     }
 
@@ -170,7 +170,7 @@ class AuthHttpTests {
         assertThat(get("/actuator/info", token).statusCode()).isEqualTo(403);
         jdbc.sql("UPDATE auth.accounts SET role = 'ADMIN' WHERE id = ?").param(user).update();
         assertThat(get("/actuator/info", token).statusCode()).isEqualTo(200);
-        jdbc.sql("UPDATE auth.accounts SET role = 'MEMBER' WHERE id = ?").param(user).update();
+        jdbc.sql("UPDATE auth.accounts SET role = 'VIEWER' WHERE id = ?").param(user).update();
         assertThat(get("/actuator/info", token).statusCode()).isEqualTo(403);
     }
 
@@ -303,7 +303,7 @@ class AuthHttpTests {
         assertThat(responseB.statusCode()).isEqualTo(200);
         assertThat(json.readValue(responseA.body(), IdentityService.MeView.class))
                 .isEqualTo(
-                        new IdentityService.MeView(user, tenant, "person@example.test", "MEMBER"));
+                        new IdentityService.MeView(user, tenant, "person@example.test", "VIEWER"));
         assertThat(json.readValue(responseB.body(), IdentityService.MeView.class))
                 .isEqualTo(
                         new IdentityService.MeView(
@@ -390,7 +390,7 @@ class AuthHttpTests {
     void paginationDefaultsBoundsAndOrderingAreTenantScoped() throws Exception {
         String token = adminToken();
         for (int index = 0; index < 21; index++) {
-            account(tenant, "extra-" + index + "@example.test", "MEMBER");
+            account(tenant, "extra-" + index + "@example.test", "VIEWER");
         }
         var first =
                 json.readValue(
@@ -499,13 +499,69 @@ class AuthHttpTests {
     void roleChangesAffectMemberRoutesWithoutReissuingToken() throws Exception {
         String token = adminToken();
         assertThat(get("/api/tenant/members", token).statusCode()).isEqualTo(200);
-        jdbc.sql("UPDATE auth.accounts SET role = 'MEMBER' WHERE id = ?").param(user).update();
+        jdbc.sql("UPDATE auth.accounts SET role = 'VIEWER' WHERE id = ?").param(user).update();
         assertThat(get("/api/tenant/members", token).statusCode()).isEqualTo(403);
         assertThat(get("/api/tenant/members/" + user, token).statusCode()).isEqualTo(403);
         assertThat(
                         json.readValue(get("/api/me", token).body(), IdentityService.MeView.class)
                                 .role())
-                .isEqualTo("MEMBER");
+                .isEqualTo("VIEWER");
+    }
+
+    @Test
+    void currentDatabaseRoleControlsIdentityAndAdminRoutesForSameToken() throws Exception {
+        String token = login.login("alpha", "person@example.test", PASSWORD).accessToken();
+        for (String role : new String[] {"ADMIN", "EDITOR", "VIEWER"}) {
+            jdbc.sql("UPDATE auth.accounts SET role = ? WHERE id = ?")
+                    .param(role)
+                    .param(user)
+                    .update();
+            var me = get("/api/me", token);
+            assertThat(me.statusCode()).isEqualTo(200);
+            assertThat(json.readValue(me.body(), IdentityService.MeView.class).role())
+                    .isEqualTo(role);
+            int expected = role.equals("ADMIN") ? 200 : 403;
+            assertThat(get("/api/tenant/members", token).statusCode()).isEqualTo(expected);
+            assertThat(get("/api/tenant/members/" + user, token).statusCode()).isEqualTo(expected);
+            assertThat(get("/actuator/info", token).statusCode()).isEqualTo(expected);
+            assertThat(get("/api/tenant/members/" + otherUser, token).statusCode())
+                    .isEqualTo(role.equals("ADMIN") ? 404 : 403);
+            if (!role.equals("ADMIN")) {
+                assertThat(get("/api/tenant/members/not-a-uuid?role=ADMIN", token).statusCode())
+                        .isEqualTo(403);
+            }
+        }
+    }
+
+    @Test
+    void devBootstrapSupportsAllCurrentRolesAndRejectsMemberBeforeWriting() throws Exception {
+        var env =
+                new MockEnvironment()
+                        .withProperty("eka.auth.bootstrap.tenant-slug", "roles-bootstrap")
+                        .withProperty("eka.auth.bootstrap.password", PASSWORD);
+        var provisioner = new DevAccountProvisioner(jdbc, passwords, env);
+        for (String role : new String[] {"ADMIN", "EDITOR", "VIEWER"}) {
+            String email = role.toLowerCase(java.util.Locale.ROOT) + "@example.test";
+            env.setProperty("eka.auth.bootstrap.email", email);
+            env.setProperty("eka.auth.bootstrap.role", role);
+            provisioner.run(null);
+            var token = login.login("roles-bootstrap", email, PASSWORD).accessToken();
+            assertThat(
+                            json.readValue(
+                                            get("/api/me", token).body(),
+                                            IdentityService.MeView.class)
+                                    .role())
+                    .isEqualTo(role);
+        }
+        env.setProperty("eka.auth.bootstrap.role", "MEMBER");
+        env.setProperty("eka.auth.bootstrap.tenant-slug", "must-not-exist");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> provisioner.run(null))
+                .isInstanceOf(IllegalStateException.class);
+        assertThat(
+                        jdbc.sql("SELECT count(*) FROM auth.tenants WHERE slug = 'must-not-exist'")
+                                .query(Long.class)
+                                .single())
+                .isZero();
     }
 
     private String adminToken() {

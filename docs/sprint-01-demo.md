@@ -11,7 +11,7 @@ PostgreSQL 17 container and ephemeral RSA keys. It does not connect to the Compo
 database or require Ollama. Ports are allocated dynamically and bound to loopback.
 If `pwsh` is not on PATH, invoke the installed PowerShell 7 executable by its absolute path. Windows PowerShell 5.1 is not supported by this script.
 
-Allow several minutes for four application starts and the first image download.
+Allow several minutes for five application starts and the first image download.
 
 ## Build and run
 
@@ -35,16 +35,16 @@ Do not run an old JAR after changing source.
 2. Starts a uniquely named disposable PostgreSQL container with no persistent volume.
    Flyway owns schema creation. The password is passed through a child-process
    environment, never a command-line argument or committed fixture.
-3. Starts the application in explicit dev bootstrap mode three times to provision
-   A ADMIN, A MEMBER and B ADMIN. Both admins use the same synthetic email in separate
+3. Starts the application in explicit dev bootstrap mode four times to provision
+   A ADMIN, A VIEWER, A EDITOR and B ADMIN. Both admins use the same synthetic email in separate
    tenants. Provisioning uses the existing application runner, not unscoped SQL inserts.
 4. Calls POST /api/auth/login and holds access tokens in memory. Checks both ADMIN
-   identities and the MEMBER's tenant using GET /api/me.
+   identities and the VIEWER/EDITOR tenants using GET /api/me.
 5. Checks tenant-filtered lists, page size 1 and own member details in both directions.
    Requests to another tenant's ID must match a random missing ID's JSON 404.
-6. Checks MEMBER list/detail 403, anonymous 401 and malformed-token 401.
-7. Repeats A ADMIN provisioning and login. Confirms the same user ID and exactly two
-   A accounts; Flyway history must contain exactly one successful versioned migration.
+6. Checks VIEWER and EDITOR list/detail 403, anonymous 401 and malformed-token 401.
+7. Repeats A ADMIN provisioning and login. Confirms the same user ID and exactly three
+   A accounts; Flyway history must contain exactly two successful versioned migrations (V1 and V2).
 8. Stops its own JVM and removes only its exact random container and temporary keys
    in a finally block, including on failure. Existing dev containers/data remain intact.
 
@@ -86,3 +86,14 @@ Manual API requests and expected response shapes are in
 
 See the [technical retrospective](sprint-notes/sprint-01-retro.md). No credentials,
 live tokens, personal feedback or unmeasured performance claims are recorded here.
+
+
+## Three-role verification — 2026-11-05
+
+The developer ran the updated script after Maven verify BUILD SUCCESS: **15/15 PASS**.
+It provisions ADMIN/EDITOR/VIEWER, verifies both non-admin denials and checks that
+V1 and V2 each apply once across restarts. Maven Surefire reports total **50 tests**
+(29 auth, 21 app), with zero failures/errors/skips. Build time: 1 minute 19 seconds.
+The historical 13/13 result above belongs to the earlier ADMIN/MEMBER script.
+This story's GitHub CI and merge are pending; upload and other original Sprint 1
+requirements remain outside this auth demo.
