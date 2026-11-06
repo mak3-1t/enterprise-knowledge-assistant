@@ -25,6 +25,7 @@ docker compose --env-file .env -f deploy/docker/docker-compose.yml up -d
 Starts PostgreSQL + pgvector, Redis, Kafka (KRaft) and an S3-compatible object store.
 All ports are bound to 127.0.0.1. Check health with `docker compose ... ps`.
 ## Documentation
+- Document metadata foundation: [docs/document-metadata.md](docs/document-metadata.md)
 - Refresh tokens and logout: [docs/refresh-sessions.md](docs/refresh-sessions.md)
 - Opt-in tenant registration: [docs/tenant-registration.md](docs/tenant-registration.md)
 - Three-role migration: [docs/auth-roles.md](docs/auth-roles.md)
@@ -40,3 +41,5 @@ All ports are bound to 127.0.0.1. Check health with `docker compose ... ps`.
 
 ## License
 Apache License 2.0
+
+- [Document upload](docs/document-upload.md) and [content scanning](docs/document-scan.md) (working implementation; full verification status in the documents).

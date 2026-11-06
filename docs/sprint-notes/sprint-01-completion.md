@@ -1,8 +1,8 @@
 # Sprint 1 completion backlog — original scope
 
-Updated: 2026-11-05. Supplements the delivered auth subset; see [roadmap](../roadmap.md).
+Updated: 2026-11-06. Supplements the delivered auth subset; see [roadmap](../roadmap.md).
 References below are draft planning IDs, not GitHub issue numbers. Estimates for
-new splits must be refined before Ready. No implementation is marked complete here.
+new splits must be refined before Ready. Delivery updates below distinguish merged work.
 
 ## C1 — Restore original three-role RBAC
 
@@ -83,3 +83,42 @@ Original umbrella estimate 5; refine splits from the actual agreed contract.
 
 C5 depends on completed original stories; EKA-6 could be moved only by explicit scope
 change. Do not generate retrospective results before execution.
+
+
+## Delivery update — 2026-11-06
+
+- C1 roles: issue #32 / PR #33 merged.
+- C2 registration: issue #34 / PR #35 merged, disabled by default.
+- C3 refresh/logout: issue #36 / PR #37 merged; main CI passed, 80 tests/demo 25 documented.
+- C4 policy approved: PDF/DOCX/TXT/MD, one file/request, <=20 MiB, duplicates create separate documents.
+- C4 split 1: [metadata foundation](../document-metadata.md) prepared, full verification/PR pending.
+- C4 next: private S3 adapter/recovery, then authorized upload/list API. No upload endpoint exists yet.
+- C5 OpenAPI and remaining DoD gates remain pending. Original Sprint 1 is not closed.
+
+## Expanded upload contract — approved 2026-11-06
+
+See [upload contract](../document-upload-contract.md). Shared tenant reads remain; quota
+is 500 MiB/100 files per tenant/user including reservations and retained deletions.
+Soft delete retains original bytes seven days. Idempotent retries reuse the intent;
+new uploads still create separate documents. Lifecycle/quota/outbox and recovery are
+required next slices; scanner/parser/embedding gates are implemented with Sprint 2.
+This is an approved specification, not evidence of completed upload functionality.
+
+### Implementation update
+
+[Upload/API/recovery slice](../document-upload.md) is prepared, pending Docker-backed
+verification. V5 adds quota/idempotency/lifecycle/Outbox; HTTP and S3 adapter exist.
+Scan/parse/embed gates, multipart/resume, full daily reconcile and UI remain incomplete.
+
+### Content scan implementation — 2026-11-06
+
+[V6/worker](../document-scan.md) adds content inspection, ClamAV, leases, bounded retries,
+generation fencing and local dead-letter state. Integration verification is pending.
+Clean files enter PROCESSING; parse/chunk/embed and READY publication remain pending.
+The local Outbox cursor does not mark events published to Kafka.
+
+### Verified checkpoint — 2026-11-06
+
+The full upload/content-scan verification passed 142 tests (zero failures/errors/skips),
+including live ClamAV, PostgreSQL/S3 and HTTP suites. BUILD SUCCESS at 16:40:25 +07:00.
+See [verification evidence](../document-scan.md). Merge/CI and the remaining parse/chunk/embed/READY/isolation scope are pending.

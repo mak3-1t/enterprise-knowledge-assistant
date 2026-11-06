@@ -1,6 +1,6 @@
 # EKA delivery roadmap and reconciliation
 
-Updated: 2026-11-05. Source: original roadmap supplied by the developer and the
+Updated: 2026-11-06. Source: original roadmap supplied by the developer and the
 Claude handover EKA-handover.md, reconciled with local source and public GitHub API.
 The handover's older unknowns do not override later merged implementation evidence.
 EKA-n below are original planning IDs, not GitHub issue numbers.
@@ -27,9 +27,9 @@ or reduced MVP is implied by the developer's hypothetical five-day question.
 
 | Original ID | Requirement | Evidence and gap |
 |---|---|---|
-| EKA-1 (3 pts) | Register tenant and first ADMIN | Dev bootstrap exists; public registration not implemented |
-| EKA-2 (5 pts) | Login, access/refresh tokens | PR #27 / issue #26: BCrypt, 15-minute RS256 access JWT; refresh deliberately deferred in ADR-004 |
-| EKA-3 (5 pts) | ADMIN/EDITOR/VIEWER RBAC | Current DB/Java/bootstrap use ADMIN/MEMBER; requires forward migration and tests |
+| EKA-1 (3 pts) | Register tenant and first ADMIN | PR #35 / issue #34: opt-in registration creates tenant + ADMIN atomically |
+| EKA-2 (5 pts) | Login, access/refresh tokens | PR #27/#37: BCrypt, access JWT and seven-day rotating refresh sessions with immediate logout |
+| EKA-3 (5 pts) | ADMIN/EDITOR/VIEWER RBAC | PR #33 / issue #32: ADMIN/EDITOR/VIEWER and MEMBER -> VIEWER migration |
 | EKA-4 (5 pts) | Tenant isolation, RLS or filter | PR #25/#29 implement tenant-scoped JDBC/account HTTP tests; document isolation still unproved |
 | EKA-5 (5 pts) | Upload to object storage and list; limits; DB metadata | No implementation; remains Sprint 1 work |
 | EKA-6 (2 pts) | Swagger/OpenAPI and health | Health implemented; OpenAPI/Swagger absent |
@@ -48,8 +48,8 @@ substitute for registration/upload/three-role RBAC.
 - S3 protocol/adapter boundary, development fork in ADR-003. Tested immutable image
   selection is outstanding; Compose currently uses pgsty/minio:latest.
 - Local JWT issuer/external RSA keys/current DB identity per ADR-004 is delivered.
-  Original refresh/registration requirements remain backlog, not implicit acceptance
-  of their permanent removal. Add a new decision record before changing token lifecycle.
+  Registration and refresh are now delivered by PR #35/#37 and ADR-006/007; signup
+  is opt-in, sessions last seven days absolutely, and logout revokes the session.
 - Tenant identity comes from verified JWT + active DB account; no client override.
 - 2026-11-05 developer approval: ADMIN manages all documents in own tenant; EDITOR
   uploads and deletes only own uploads; VIEWER reads/downloads. Existing MEMBER
@@ -60,14 +60,15 @@ substitute for registration/upload/three-role RBAC.
 
 ## Remaining product decisions
 
-Before upload implementation: allowed formats/size, duplicate behavior, download
+Upload policy approved 2026-11-06: PDF/DOCX/TXT/MD, one file/request, <=20 MiB;
+each repeat creates a separate document. Before remaining implementation: download
 transport, bucket/key layout and deletion semantics. Candidate formats from planned
 Tika parsing are PDF/DOCX/TXT/MD, not a confirmed Sprint 1 allowlist. Prior PDF/TXT,
 10 MiB, ADMIN-only upload and expanded deletion-recovery proposal were not approved
 baseline and are superseded by this reconciliation. Do not implement them as facts.
 
-Confirm registration trust/abuse controls and refresh rotation/revocation contract
-in the corresponding stories. Do not add a public provisioning endpoint by exposing
+Registration trust limits and refresh rotation/revocation are documented in
+[tenant-registration.md](tenant-registration.md) and [refresh-sessions.md](refresh-sessions.md). Do not add a public provisioning endpoint by exposing
 the development bootstrap. Keep file storage lifecycle separate from ingestion
 UPLOADED/PROCESSING/READY/FAILED; UPLOADED never means embedded/searchable.
 
@@ -107,15 +108,32 @@ Final acceptance also requires chunk-size comparison, before/after reranking
 quality evaluation, before/after p95/throughput benchmark, tested provider fallback,
 one-command full Compose startup and documented architecture/demo evidence.
 
-## Delivery order
+## Delivery order — remaining Sprint 1
 
-1. Merge this documentation reconciliation after review and CI; no runtime change.
-2. Implement three-role RBAC via a forward migration; retain auth and isolation tests.
-3. Complete registration/refresh contracts and their individual stories.
-4. Implement upload/list metadata + private storage with role/tenant tests, then
-   OpenAPI and the remaining Sprint 1 DoD gates. Split stories <=8 points.
-5. Complete original Sprint 1 acceptance, then Sprint 2 Outbox -> parser -> chunking
-   -> embeddings, with idempotency/retry/DLT and status tests, per linked backlog.
+1. Auth prerequisites delivered: roles #32/PR #33, signup #34/PR #35 and refresh
+   #36/PR #37. Latest confirmed main is 78d963f with green CI; original snapshots
+   above retain their audit dates. Full original Sprint 1 remains incomplete.
+2. Review/verify/merge the document metadata foundation (V4), then private S3 adapter
+   with bounded I/O, compensation/recovery and real integration tests.
+3. Implement authorized upload/list service/API with the approved limits, format
+   validation and tenant/role checks; define any download/delete extension explicitly.
+4. Add OpenAPI and remaining original DoD gates, run complete document acceptance,
+   then tag v0.1.0 only after the original Sprint 1 deliverable is satisfied.
+5. Sprint 2: Outbox -> parse -> chunk -> embed, with idempotency/retry/DLT/status and
+   measured chunk-size comparison, per the restored original roadmap.
 
-The original IDs are not GitHub issue numbers. Create actual issues, map their IDs,
-use one issue/branch/PR per story and complete Closes references before merging.
+Planning IDs are not GitHub issue numbers. Create actual issues, map their IDs, use
+one issue/branch/PR per story and complete Closes references before merging.
+
+## Content scan working-branch update — 2026-11-06
+
+V4/V5 upload baseline passed 114 developer-run tests. V6 adds a local durable scan
+worker and format/ClamAV gates, pending integration verification; see
+[content scan](document-scan.md). This introduces the scan prerequisite early without
+claiming Kafka, parse/chunk/embed, full OS sandbox or READY publication is delivered.
+
+### Verified checkpoint — 2026-11-06
+
+The full upload/content-scan verification passed 142 tests (zero failures/errors/skips),
+including live ClamAV, PostgreSQL/S3 and HTTP suites. BUILD SUCCESS at 16:40:25 +07:00.
+See [verification evidence](document-scan.md). Merge/CI and the remaining parse/chunk/embed/READY/isolation scope are pending.

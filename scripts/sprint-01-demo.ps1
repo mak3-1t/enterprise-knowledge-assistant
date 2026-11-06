@@ -175,7 +175,7 @@ try {
     Assert-Demo ($again.userId -eq $meA.userId -and @($list.items).Count -eq 3) 'Restart preserves identity and does not duplicate accounts'
     $migrationCount = & docker exec $container psql -U demo -d demo -Atc 'SELECT count(*) FROM flyway_schema_history WHERE success AND version IS NOT NULL'
     if ($LASTEXITCODE -ne 0) { throw 'Migration history verification failed.' }
-    Assert-Demo ($migrationCount.Trim() -eq '3') 'Flyway applies V1 through V3 exactly once across restarts'
+    Assert-Demo ($migrationCount.Trim() -eq '6') 'Flyway applies V1 through V6 exactly once across restarts'
     if ($IncludeRegistration) {
         $registration = @{ tenantSlug = 'signup-a'; email = 'signup@example.test'; password = $password }
         $off = Request-Demo POST '/api/auth/register' 404 '' $registration

@@ -24,6 +24,20 @@ management:
         include: health,info
 
 eka:
+  upload:
+    enabled: ${EKA_UPLOAD_ENABLED:false}
+    scan:
+      enabled: ${EKA_UPLOAD_SCAN_ENABLED:false}
+      clamav-host: ${EKA_CLAMAV_HOST:localhost}
+      clamav-port: ${EKA_CLAMAV_PORT:3310}
+      clamav-timeout-ms: 30000
+      inspection-timeout-seconds: 60
+    endpoint: ${EKA_UPLOAD_ENDPOINT:http://localhost:9000}
+    public-endpoint: ${EKA_UPLOAD_PUBLIC_ENDPOINT:http://localhost:9000}
+    region: ${EKA_UPLOAD_REGION:us-east-1}
+    bucket: ${EKA_UPLOAD_BUCKET:eka-documents}
+    access-key: ${EKA_UPLOAD_ACCESS_KEY:}
+    secret-key: ${EKA_UPLOAD_SECRET_KEY:}
   auth:
     registration:
       enabled: ${EKA_AUTH_REGISTRATION_ENABLED:false}

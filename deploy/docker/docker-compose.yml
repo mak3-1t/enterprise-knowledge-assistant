@@ -1,6 +1,33 @@
 name: eka
 
 services:
+  clamav:
+    image: clamav/clamav:1.4
+    profiles: ["malware"]
+    environment:
+      CLAMD_CONF_StreamMaxLength: 20M
+      CLAMD_CONF_MaxFileSize: 64M
+      CLAMD_CONF_MaxScanSize: 128M
+      CLAMD_CONF_MaxScanTime: "25000"
+      CLAMD_CONF_AlertExceedsMax: "yes"
+      CLAMD_CONF_AlertEncrypted: "yes"
+      CLAMD_CONF_MaxThreads: "2"
+      CLAMD_CONF_MaxQueue: "16"
+    ports:
+      - "127.0.0.1:3310:3310"
+    volumes:
+      - clamav-data:/var/lib/clamav
+    mem_limit: 4g
+    cpus: 1.0
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
+
   postgres:
     image: pgvector/pgvector:pg17
     environment:
@@ -79,6 +106,7 @@ services:
       retries: 10
 
 volumes:
+  clamav-data:
   postgres-data:
   redis-data:
   kafka-data:
