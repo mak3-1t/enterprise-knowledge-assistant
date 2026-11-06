@@ -1,6 +1,6 @@
 #requires -Version 5.1
 [CmdletBinding()]
-param()
+param([string]$LogPath = 'target/document-scan-verify.log')
 
 $ErrorActionPreference = 'Stop'
 $repository = Split-Path -Parent $PSScriptRoot
@@ -24,11 +24,11 @@ try {
     New-Item -ItemType Directory -Force -Path target | Out-Null
     # Windows PowerShell 5 can turn harmless native stderr warnings into errors.
     $ErrorActionPreference = 'Continue'
-    & .\mvnw.cmd -o -B verify 2>&1 | Tee-Object -FilePath 'target/document-scan-verify.log' -ErrorAction Stop
+    & .\mvnw.cmd -o -B verify 2>&1 | Tee-Object -FilePath $LogPath -ErrorAction Stop
     $verifyExit = $LASTEXITCODE
     $ErrorActionPreference = 'Stop'
     if ($verifyExit -ne 0) {
-        throw 'Verification failed. See target/document-scan-verify.log and Surefire reports.'
+        throw "Verification failed. See $LogPath and Surefire reports."
     }
     Write-Host 'Full verification completed, including the live ClamAV smoke.'
 }

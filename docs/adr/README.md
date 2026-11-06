@@ -12,3 +12,4 @@
 | [0008](0008-document-metadata.md) | Tenant-owned document metadata | Locally verified; merge pending |
 | [0009](0009-durable-document-upload.md) | Durable document upload and recovery | Locally verified; merge pending |
 | [0010](0010-document-content-scan.md) | Durable content and malware scan | Locally verified; merge pending |
+| [0011](0011-document-outbox-kafka.md) | At-least-once Outbox relay to Kafka | Locally verified; CI/merge pending |

@@ -19,7 +19,7 @@ class DocumentMigrationTests {
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17-alpine");
 
     @Test
-    void v3ToV6PreservesAuthAndExistingV4DocumentMetadata() {
+    void v3ToV7PreservesAuthAndExistingV4DocumentMetadata() {
         var source =
                 new DriverManagerDataSource(
                         POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
@@ -70,8 +70,8 @@ class DocumentMigrationTests {
                 .update();
         var documentBefore = jdbc.sql("SELECT * FROM ingestion.documents").query().singleRow();
         var latest = Flyway.configure().dataSource(source).cleanDisabled(true).load();
-        assertThat(latest.migrate().migrationsExecuted).isEqualTo(2);
-        assertThat(latest.info().current().getVersion().getVersion()).isEqualTo("6");
+        assertThat(latest.migrate().migrationsExecuted).isEqualTo(3);
+        assertThat(latest.info().current().getVersion().getVersion()).isEqualTo("7");
         assertThat(jdbc.sql("SELECT * FROM auth.accounts").query().singleRow())
                 .isEqualTo(accountBefore);
         assertThat(jdbc.sql("SELECT * FROM auth.sessions").query().singleRow())

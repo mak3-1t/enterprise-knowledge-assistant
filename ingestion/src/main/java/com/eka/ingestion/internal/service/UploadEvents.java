@@ -33,6 +33,9 @@ public class UploadEvents {
         CLEANUP_DEFERRED,
         SCAN_PASSED,
         SCAN_REJECTED,
-        SCAN_RETRY
+        SCAN_RETRY,
+        OUTBOX_PUBLISHED,
+        OUTBOX_STALE,
+        OUTBOX_DEFERRED
     }
 }

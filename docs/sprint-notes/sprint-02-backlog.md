@@ -95,3 +95,17 @@ Integrate throughout pipeline. No fabricated demo/retro results before live acce
 Refine actual GitHub issues/milestone/points, then one issue/branch/PR at a time.
 Sprint ends with real pipeline demo, green required CI, chunk-size report, ADR and
 updated docs before v0.2.0. Original IDs must never be used as Closes # numbers.
+
+## Working implementation — 2026-11-06
+
+Original EKA-7 has an implementation on feat/40-document-outbox-kafka: V7, lease-based
+Outbox relay, versioned public event envelope and real DB/Kafka test coverage. Issue #40 tracks this delivery; PR/CI/merge are pending; see
+[Outbox relay](../document-outbox-kafka.md). Parse/chunk/embed/READY remain later stories.
+Sprint 1 OpenAPI/DoD closure tasks remain tracked; beginning this E2 work does not
+claim Sprint 1 is fully closed or create a release/tag.
+
+### EKA-7 verification checkpoint
+
+Full developer verification passed 160 tests with zero failures/errors/skips, including
+real DB/Kafka and live ClamAV (2026-11-06 17:34:39 +07:00). Issue #40 created; CI/merge are pending;
+this does not complete EKA-8..12 or the remaining Sprint 1 DoD tasks.
