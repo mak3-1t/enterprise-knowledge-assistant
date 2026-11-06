@@ -43,3 +43,5 @@ All ports are bound to 127.0.0.1. Check health with `docker compose ... ps`.
 Apache License 2.0
 
 - [Document upload](docs/document-upload.md) and [content scanning](docs/document-scan.md) (working implementation; full verification status in the documents).
+
+- [Document Outbox to Kafka](docs/document-outbox-kafka.md) (Sprint 2 relay; verification status in the document).

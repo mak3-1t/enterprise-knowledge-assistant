@@ -9,6 +9,8 @@ spring:
   sql:
     init:
       mode: never
+  kafka:
+    bootstrap-servers: ${EKA_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
   flyway:
     clean-disabled: true
     locations: classpath:db/migration
@@ -24,6 +26,11 @@ management:
         include: health,info
 
 eka:
+  ingestion:
+    kafka:
+      enabled: ${EKA_INGESTION_KAFKA_ENABLED:false}
+      create-topic: ${EKA_KAFKA_CREATE_TOPIC:false}
+      topic: ${EKA_DOCUMENT_EVENTS_TOPIC:eka.documents.events.v1}
   upload:
     enabled: ${EKA_UPLOAD_ENABLED:false}
     scan:

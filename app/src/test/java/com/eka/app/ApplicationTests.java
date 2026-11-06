@@ -35,7 +35,7 @@ class ApplicationTests {
 
     @Test
     void contextLoadsWithMigratedDatabase() {
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("6");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("7");
         assertThat(jdbc.sql("SELECT count(*) FROM auth.accounts").query(Long.class).single())
                 .isZero();
         UUID marker = UUID.randomUUID();
