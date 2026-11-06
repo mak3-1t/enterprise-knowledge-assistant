@@ -11,6 +11,23 @@
   <artifactId>ingestion</artifactId>
   <name>EKA ingestion</name>
   <dependencies>
+    <dependency><groupId>org.apache.pdfbox</groupId><artifactId>pdfbox</artifactId><version>3.0.8</version></dependency>
     <dependency><groupId>com.eka</groupId><artifactId>common</artifactId></dependency>
+    <dependency><groupId>com.eka</groupId><artifactId>auth</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-webmvc</artifactId></dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId><artifactId>s3</artifactId><version>2.57.8</version>
+      <exclusions>
+        <exclusion><groupId>software.amazon.awssdk</groupId><artifactId>apache-client</artifactId></exclusion>
+        <exclusion><groupId>software.amazon.awssdk</groupId><artifactId>netty-nio-client</artifactId></exclusion>
+      </exclusions>
+    </dependency>
+    <dependency><groupId>software.amazon.awssdk</groupId><artifactId>url-connection-client</artifactId><version>2.57.8</version></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-jdbc</artifactId></dependency>
+    <dependency><groupId>org.flywaydb</groupId><artifactId>flyway-core</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.flywaydb</groupId><artifactId>flyway-database-postgresql</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.testcontainers</groupId><artifactId>testcontainers-postgresql</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.testcontainers</groupId><artifactId>testcontainers-junit-jupiter</artifactId><scope>test</scope></dependency>
   </dependencies>
 </project>

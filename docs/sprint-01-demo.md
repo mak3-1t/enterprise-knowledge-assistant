@@ -124,3 +124,10 @@ The default role script now checks three migrations (V1..V3). Historical 13/15/2
 records retain their earlier scope. CI uses both switches; this story's CI/merge
 are still pending. Document upload/OpenAPI and full original Sprint 1 acceptance
 remain separate work.
+
+
+## V4 metadata foundation — execution pending
+
+The current packaged demo still has 25 checks but now validates four applied migrations
+(V1..V4). Fresh execution is pending. This confirms packaged startup/auth regression,
+not document upload: the metadata story adds no storage adapter or HTTP endpoint.

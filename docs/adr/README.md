@@ -9,3 +9,6 @@
 | [0005](0005-three-role-rbac.md) | Restore ADMIN / EDITOR / VIEWER roles | Accepted policy; implementation pending merge |
 | [0006](0006-tenant-registration.md) | Explicit opt-in tenant registration | Accepted policy; implementation pending merge |
 | [0007](0007-refresh-sessions.md) | Rotating refresh tokens and revocable sessions | Accepted policy; implementation pending merge |
+| [0008](0008-document-metadata.md) | Tenant-owned document metadata | Locally verified; merge pending |
+| [0009](0009-durable-document-upload.md) | Durable document upload and recovery | Locally verified; merge pending |
+| [0010](0010-document-content-scan.md) | Durable content and malware scan | Locally verified; merge pending |
