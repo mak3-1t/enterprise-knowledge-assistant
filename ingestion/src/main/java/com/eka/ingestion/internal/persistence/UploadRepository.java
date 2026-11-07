@@ -230,7 +230,7 @@ public class UploadRepository {
         jdbc.sql(
                         """
                 UPDATE ingestion.documents SET restore_status = upload_status, upload_status = 'DELETED',
-                    deleted_at = CURRENT_TIMESTAMP, cleanup_after = CASE WHEN
+                    source_generation = NULL, deleted_at = CURRENT_TIMESTAMP, cleanup_after = CASE WHEN
                         upload_status IN ('UPLOADED','SCANNING','PROCESSING','READY')
                         THEN CURRENT_TIMESTAMP + INTERVAL '7 days'
                         ELSE GREATEST(expires_at, CURRENT_TIMESTAMP) END,
@@ -241,6 +241,11 @@ public class UploadRepository {
                 .param(id)
                 .update();
         event(tenant, id, row.version() + 1, "DOCUMENT_DELETED");
+        jdbc.sql(
+                        "DELETE FROM ingestion.document_source_sections WHERE tenant_id = ? AND document_id = ?")
+                .param(tenant)
+                .param(id)
+                .update();
     }
 
     @Transactional
@@ -366,7 +371,12 @@ public class UploadRepository {
         }
         removeObjects.run();
         jdbc.sql(
-                        "UPDATE ingestion.documents SET purged_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE tenant_id = ? AND id = ?")
+                        "DELETE FROM ingestion.document_source_sections WHERE tenant_id = ? AND document_id = ?")
+                .param(tenant)
+                .param(id)
+                .update();
+        jdbc.sql(
+                        "UPDATE ingestion.documents SET purged_at = CURRENT_TIMESTAMP, source_generation = NULL, updated_at = CURRENT_TIMESTAMP WHERE tenant_id = ? AND id = ?")
                 .param(tenant)
                 .param(id)
                 .update();

@@ -45,3 +45,5 @@ Apache License 2.0
 - [Document upload](docs/document-upload.md) and [content scanning](docs/document-scan.md) (working implementation; full verification status in the documents).
 
 - [Document Outbox to Kafka](docs/document-outbox-kafka.md) (Sprint 2 relay; verification status in the document).
+
+- [Durable Tika text parsing](docs/document-text-parser.md) (verification status and remaining scope in the document).

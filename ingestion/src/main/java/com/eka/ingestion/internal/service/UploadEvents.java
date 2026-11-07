@@ -36,6 +36,9 @@ public class UploadEvents {
         SCAN_RETRY,
         OUTBOX_PUBLISHED,
         OUTBOX_STALE,
-        OUTBOX_DEFERRED
+        OUTBOX_DEFERRED,
+        PARSE_SUCCEEDED,
+        PARSE_DEFERRED,
+        PARSE_FAILED
     }
 }

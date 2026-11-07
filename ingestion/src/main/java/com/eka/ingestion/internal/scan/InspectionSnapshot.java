@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import software.amazon.awssdk.core.ResponseInputStream;
 
-final class InspectionSnapshot implements AutoCloseable {
+public final class InspectionSnapshot implements AutoCloseable {
     private static final ScheduledExecutorService DEADLINES =
             Executors.newSingleThreadScheduledExecutor(
                     task -> {
@@ -29,7 +29,7 @@ final class InspectionSnapshot implements AutoCloseable {
         this.file = file;
     }
 
-    static InspectionSnapshot create(UploadStorage storage, UploadRecord row) {
+    public static InspectionSnapshot create(UploadStorage storage, UploadRecord row) {
         Path file = null;
         try {
             file = Files.createTempFile("eka-scan-", ".quarantine");
@@ -78,7 +78,7 @@ final class InspectionSnapshot implements AutoCloseable {
         }
     }
 
-    Path file() {
+    public Path file() {
         return file;
     }
 
