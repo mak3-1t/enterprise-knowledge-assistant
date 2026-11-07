@@ -298,24 +298,37 @@ public class UploadRepository {
                 == 1;
     }
 
+    /** Retain verified originals briefly so an operator can restart failed processing. */
+    public boolean failProcessingForRecovery(UUID tenant, UUID id, long version, String code) {
+        return fail(tenant, id, version, false, code, true);
+    }
+
     public boolean fail(UUID tenant, UUID id, long version, boolean rejected, String code) {
+        return fail(tenant, id, version, rejected, code, false);
+    }
+
+    private boolean fail(
+            UUID tenant, UUID id, long version, boolean rejected, String code, boolean retain) {
         if (code == null || !code.matches("[A-Z_]{1,40}")) {
             throw new UploadConflict("INVALID_ERROR_CODE");
         }
         return jdbc.sql(
                                 """
                 UPDATE ingestion.documents SET upload_status = ?, error_code = ?,
-                    cleanup_after = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP,
-                    version = version + 1
+                    cleanup_after = CASE WHEN ? THEN CURRENT_TIMESTAMP + INTERVAL '7 days' ELSE CURRENT_TIMESTAMP END,
+                    updated_at = CURRENT_TIMESTAMP, version = version + 1
                 WHERE tenant_id = ? AND id = ? AND version = ?
                     AND upload_status IN ('UPLOADED','SCANNING','PROCESSING')
+                    AND (NOT ? OR upload_status = 'PROCESSING')
                     AND idempotency_key IS NOT NULL
                 """)
                         .param(rejected ? "REJECTED" : "FAILED")
                         .param(code)
+                        .param(retain)
                         .param(tenant)
                         .param(id)
                         .param(version)
+                        .param(retain)
                         .update()
                 == 1;
     }

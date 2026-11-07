@@ -131,6 +131,36 @@ class EmbeddingPersistenceTest {
         assertThat(vectorCount(doc)).isZero();
     }
 
+    @Test
+    void exhaustedEmbeddingCanBeRequeuedOnceAndClearsOldSource() throws Exception {
+        UUID doc = db.parsed(tenant, user, "hello");
+        var jobs = db.bean(EmbeddingJobRepository.class);
+        for (int attempt = 1; attempt <= 4; attempt++) {
+            var job = jobs.claim().orElseThrow();
+            assertThat(job.attempts()).isEqualTo(attempt);
+            jobs.failed(job, "EMBEDDING_PROVIDER_UNAVAILABLE", false);
+            jdbc().sql(
+                            "UPDATE ingestion.document_embedding_jobs SET available_at = clock_timestamp()")
+                    .update();
+        }
+        var failed = uploads().find(tenant, doc).orElseThrow();
+        assertThat(failed.status()).isEqualTo(UploadStatus.FAILED);
+        assertThat(db.recover(tenant, doc, failed.version())).isTrue();
+        assertThat(db.recover(tenant, doc, failed.version())).isFalse();
+        assertThat(status(doc)).isEqualTo(UploadStatus.UPLOADED);
+        assertThat(jobState(doc)).isEqualTo("DEAD");
+        assertThat(db.bean(ParseJobRepository.class).loadCurrent(tenant, doc)).isEmpty();
+        assertThat(
+                        jdbc().sql(
+                                        "SELECT count(*) FROM ingestion.document_source_sections WHERE tenant_id = ? AND document_id = ?")
+                                .param(tenant)
+                                .param(doc)
+                                .query(Long.class)
+                                .single())
+                .isZero();
+        assertThat(vectorCount(doc)).isZero();
+    }
+
     private EmbeddingWorker worker(EmbeddingProvider provider) {
         return new EmbeddingWorker(
                 db.bean(EmbeddingJobRepository.class),

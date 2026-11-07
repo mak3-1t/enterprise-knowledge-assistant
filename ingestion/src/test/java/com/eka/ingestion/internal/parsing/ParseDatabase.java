@@ -124,6 +124,27 @@ public final class ParseDatabase implements AutoCloseable {
         return event.document();
     }
 
+    public boolean recover(UUID tenant, UUID document, long failedVersion)
+            throws java.io.IOException {
+        String script =
+                java.nio.file.Files.readString(
+                        java.nio.file.Path.of("..", "scripts", "recover-document-job.sql"));
+        String statement =
+                script.lines()
+                        .filter(line -> !line.startsWith("\\"))
+                        .collect(java.util.stream.Collectors.joining("\n"))
+                        .replace(":'tenant_id'::uuid", "?")
+                        .replace(":'document_id'::uuid", "?")
+                        .replace(":'failed_version'::bigint", "?");
+        return jdbc.sql(statement)
+                .param(tenant)
+                .param(document)
+                .param(failedVersion)
+                .query((rs, ignored) -> rs.getLong("document_version"))
+                .optional()
+                .isPresent();
+    }
+
     public void reset() {
         for (String table :
                 java.util.List.of(

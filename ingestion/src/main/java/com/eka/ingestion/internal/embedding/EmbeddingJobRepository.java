@@ -81,12 +81,8 @@ class EmbeddingJobRepository {
                         attempts + 1,
                         token);
         if (job.attempts() > 4) {
-            uploads.fail(
-                    job.tenant(),
-                    job.document(),
-                    job.version(),
-                    false,
-                    "EMBEDDING_RETRY_EXHAUSTED");
+            uploads.failProcessingForRecovery(
+                    job.tenant(), job.document(), job.version(), "EMBEDDING_RETRY_EXHAUSTED");
             state(job, "DEAD", "EMBEDDING_RETRY_EXHAUSTED", 0);
             return Optional.empty();
         }
@@ -184,7 +180,12 @@ class EmbeddingJobRepository {
             return;
         }
         if (permanent || job.attempts() == 4) {
-            uploads.fail(job.tenant(), job.document(), job.version(), false, code);
+            if (permanent) {
+                uploads.fail(job.tenant(), job.document(), job.version(), false, code);
+            } else {
+                uploads.failProcessingForRecovery(
+                        job.tenant(), job.document(), job.version(), code);
+            }
             state(job, "DEAD", code, 0);
             return;
         }

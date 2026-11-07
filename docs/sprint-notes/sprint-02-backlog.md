@@ -150,4 +150,10 @@ Kafka and live ClamAV.
 EKA-10 merged via issue #49 / PR #50 at debcea5. Opt-in parser intake DLT and an
 operator replay command are implemented. See [configuration and replay](../document-intake-dlt.md).
 Full developer verification passed 196 tests on 2026-11-07 at 21:30:36 +07:00, including
-Kafka DLT, PostgreSQL replay and app startup. Terminal parse/embedding job recovery remains open.
+Kafka DLT, PostgreSQL replay and app startup. Issue #51 / PR #52 merged at c8054a6.
+
+## EKA-11 terminal job recovery checkpoint
+
+An authorized database operator can requeue a retained FAILED document using its exact
+version. The recovery starts a new scan and clears old derived sources. See
+[terminal job recovery](../document-job-recovery.md). Full developer verification passed 197 tests on 2026-11-07 at 22:09:09 +07:00.
