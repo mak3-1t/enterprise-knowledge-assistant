@@ -28,7 +28,8 @@ public record OutboxDelivery(
                                 "UPLOAD_COMPLETED",
                                 "DOCUMENT_RESTORED",
                                 "DOCUMENT_DELETED",
-                                "CONTENT_VERIFIED")
+                                "CONTENT_VERIFIED",
+                                "SOURCE_PARSED")
                         .contains(eventType)) {
             throw new IllegalArgumentException("Invalid document event");
         }

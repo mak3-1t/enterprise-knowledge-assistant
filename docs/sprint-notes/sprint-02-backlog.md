@@ -109,3 +109,12 @@ claim Sprint 1 is fully closed or create a release/tag.
 Full developer verification passed 160 tests with zero failures/errors/skips, including
 real DB/Kafka and live ClamAV (2026-11-06 17:34:39 +07:00). Issue #40 created; CI/merge are pending;
 this does not complete EKA-8..12 or the remaining Sprint 1 DoD tasks.
+
+## EKA-8 working implementation — 2026-11-06
+
+Outbox issue #40 / PR #41 is merged (main b2a42ae). The next branch
+feat/document-text-parser implements [durable parser intake/source persistence](../document-text-parser.md),
+with 184 developer tests passed on 2026-11-07 at 10:48:29 +07:00, including PostgreSQL,
+Kafka and live ClamAV. GitHub CI and merge are pending.
+EKA-9 chunking and EKA-10 embedding/READY remain separate deliveries; original Sprint 1
+OpenAPI/DoD gaps and Sprint 2 DLT/replay/acceptance are still open.

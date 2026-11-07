@@ -10,7 +10,12 @@
   </parent>
   <artifactId>ingestion</artifactId>
   <name>EKA ingestion</name>
+  <properties><tika.version>3.3.3</tika.version></properties>
   <dependencies>
+    <dependency><groupId>org.apache.tika</groupId><artifactId>tika-core</artifactId><version>${tika.version}</version></dependency>
+    <dependency><groupId>org.apache.tika</groupId><artifactId>tika-parser-pdf-module</artifactId><version>${tika.version}</version></dependency>
+    <dependency><groupId>org.apache.tika</groupId><artifactId>tika-parser-microsoft-module</artifactId><version>${tika.version}</version></dependency>
+    <dependency><groupId>org.apache.tika</groupId><artifactId>tika-parser-text-module</artifactId><version>${tika.version}</version></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-kafka</artifactId></dependency>
     <dependency><groupId>org.testcontainers</groupId><artifactId>testcontainers-kafka</artifactId><scope>test</scope></dependency>
     <dependency><groupId>org.apache.pdfbox</groupId><artifactId>pdfbox</artifactId><version>3.0.8</version></dependency>
