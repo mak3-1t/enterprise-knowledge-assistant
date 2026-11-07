@@ -163,3 +163,9 @@ version. The recovery starts a new scan and clears old derived sources. See
 EKA-11 recovery merged via issue #53 / PR #54 at 5390a34. The tenant document API now
 returns document versions and allowlisted failure codes on list and detail. See
 [status contract](../document-ingestion-status.md). Full verification passed 198 tests on 2026-11-07 at 23:30:08 +07:00, including tenant status HTTP tests.
+
+## Sprint 2 acceptance checkpoint
+
+EKA-12 merged via issue #55 / PR #56 at b649e01. The application acceptance case now
+covers signed upload through READY, download authorization and removal of vectors
+on deletion. See [Sprint 2 demo](../sprint-02-demo.md). Full developer verification passed 198 tests on 2026-11-07 at 23:46:59 +07:00. CI and merge are pending.
