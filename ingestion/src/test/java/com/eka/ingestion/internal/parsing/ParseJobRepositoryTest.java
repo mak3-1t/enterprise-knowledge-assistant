@@ -3,6 +3,9 @@ package com.eka.ingestion.internal.parsing;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.eka.ingestion.internal.chunking.ChunkSettings;
+import com.eka.ingestion.internal.chunking.DocumentChunkService;
+import com.eka.ingestion.internal.chunking.SourceChunk;
 import com.eka.ingestion.internal.persistence.UploadStatus;
 import java.util.List;
 import java.util.UUID;
@@ -55,6 +58,15 @@ class ParseJobRepositoryTest {
                 .extracting(ParsedDocument.Section::text)
                 .containsExactly("hello");
         assertThat(db.jobs.loadCurrent(UUID.randomUUID(), event.document())).isEmpty();
+        var chunkService =
+                new DocumentChunkService(
+                        db.jobs, new ChunkSettings(ChunkSettings.Strategy.RECURSIVE, 512, 64));
+        assertThat(chunkService.load(tenant, event.document(), event.version()))
+                .extracting(SourceChunk::text)
+                .containsExactly("hello");
+        assertThat(chunkService.load(tenant, event.document(), event.version() + 1)).isEmpty();
+        assertThat(chunkService.load(UUID.randomUUID(), event.document(), event.version()))
+                .isEmpty();
         assertThat(db.uploads.find(tenant, event.document()).orElseThrow().status())
                 .isEqualTo(UploadStatus.PROCESSING);
         assertThat(

@@ -224,6 +224,18 @@ public class ParseJobRepository {
 
     /** Private, tenant-scoped source access for subsequent chunking; no public text route. */
     public List<ParsedDocument.Section> loadCurrent(UUID tenant, UUID document) {
+        return loadCurrent(tenant, document, null);
+    }
+
+    public List<ParsedDocument.Section> loadCurrentGeneration(
+            UUID tenant, UUID document, long generation) {
+        if (generation < 0) {
+            throw new IllegalArgumentException("Invalid source generation");
+        }
+        return loadCurrent(tenant, document, generation);
+    }
+
+    private List<ParsedDocument.Section> loadCurrent(UUID tenant, UUID document, Long generation) {
         java.util.Objects.requireNonNull(tenant);
         java.util.Objects.requireNonNull(document);
         return jdbc.sql(
@@ -232,10 +244,14 @@ public class ParseJobRepository {
                 JOIN ingestion.documents d ON d.tenant_id = s.tenant_id AND d.id = s.document_id
                     AND d.source_generation = s.generation
                 WHERE s.tenant_id = ? AND s.document_id = ? AND d.upload_status IN ('PROCESSING','READY')
+                    AND s.generation = COALESCE(CAST(? AS bigint), d.source_generation)
                 ORDER BY s.ordinal
                 """)
                 .param(tenant)
                 .param(document)
+                .param(
+                        new org.springframework.jdbc.core.SqlParameterValue(
+                                java.sql.Types.BIGINT, generation))
                 .query(
                         (rs, ignored) ->
                                 new ParsedDocument.Section(

@@ -118,3 +118,11 @@ with 184 developer tests passed on 2026-11-07 at 10:48:29 +07:00, including Post
 Kafka and live ClamAV. GitHub CI and merge are pending.
 EKA-9 chunking and EKA-10 embedding/READY remain separate deliveries; original Sprint 1
 OpenAPI/DoD gaps and Sprint 2 DLT/replay/acceptance are still open.
+
+## EKA-9 working implementation
+
+The parser from issue #45 / PR #46 merged at 966c38e. Fixed and recursive splitting now
+read the current private source generation and preserve section offsets and page references.
+See [configuration and measured comparison](../document-chunking.md). Full developer
+verification passed 187 tests on 2026-11-07 at 14:27:33 +07:00, including the PostgreSQL
+checks for stale generations and foreign tenants, Kafka and live ClamAV. EKA-10 owns embeddings, persistence and the READY transition.
