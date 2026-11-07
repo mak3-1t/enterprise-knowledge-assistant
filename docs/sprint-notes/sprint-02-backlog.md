@@ -157,3 +157,9 @@ Kafka DLT, PostgreSQL replay and app startup. Issue #51 / PR #52 merged at c8054
 An authorized database operator can requeue a retained FAILED document using its exact
 version. The recovery starts a new scan and clears old derived sources. See
 [terminal job recovery](../document-job-recovery.md). Full developer verification passed 197 tests on 2026-11-07 at 22:09:09 +07:00.
+
+## EKA-12 status checkpoint
+
+EKA-11 recovery merged via issue #53 / PR #54 at 5390a34. The tenant document API now
+returns document versions and allowlisted failure codes on list and detail. See
+[status contract](../document-ingestion-status.md). Full verification passed 198 tests on 2026-11-07 at 23:30:08 +07:00, including tenant status HTTP tests.
