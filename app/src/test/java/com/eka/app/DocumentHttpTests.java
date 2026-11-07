@@ -174,6 +174,46 @@ class DocumentHttpTests {
     }
 
     @Test
+    void statusMasksInternalFailuresAndRevokesInactiveReaders() throws Exception {
+        String token = account("status-http");
+        UUID id = id(init(token, "status-key"));
+        String path = "/api/documents/" + id;
+        var pending = json.readTree(send("GET", path, token, null, null).body());
+        assertThat(pending.get("status").asText()).isEqualTo("PENDING");
+        var uploaded =
+                json.readTree(send("POST", path + "/complete", token, null, Map.of()).body());
+        assertThat(uploaded.get("status").asText()).isEqualTo("UPLOADED");
+        long uploadedVersion = uploaded.get("version").asLong();
+        assertThat(uploadedVersion).isGreaterThan(pending.get("version").asLong());
+
+        UUID tenant =
+                jdbc.sql("SELECT tenant_id FROM ingestion.documents WHERE id = ?")
+                        .param(id)
+                        .query(UUID.class)
+                        .single();
+        assertThat(uploads.fail(tenant, id, uploadedVersion, false, "PRIVATE_INTERNAL_DIAGNOSTIC"))
+                .isTrue();
+
+        var detail = send("GET", path, token, null, null);
+        assertThat(detail.statusCode()).isEqualTo(200);
+        assertThat(detail.headers().firstValue("Cache-Control")).contains("no-store");
+        assertThat(detail.body()).doesNotContain("PRIVATE_INTERNAL_DIAGNOSTIC");
+        var failed = json.readTree(detail.body());
+        assertThat(failed.get("status").asText()).isEqualTo("FAILED");
+        assertThat(failed.get("errorCode").asText()).isEqualTo("PROCESSING_FAILED");
+        assertThat(failed.get("version").asLong()).isGreaterThan(uploadedVersion);
+        assertThat(json.readTree(send("GET", "/api/documents", token, null, null).body()).get(0))
+                .isEqualTo(failed);
+        assertThat(send("GET", path + "/download", token, null, null).statusCode()).isEqualTo(409);
+
+        jdbc.sql("UPDATE auth.accounts SET active = false WHERE tenant_id = ?")
+                .param(tenant)
+                .update();
+        assertThat(send("GET", path, token, null, null).statusCode()).isEqualTo(401);
+        assertThat(send("GET", "/api/documents", token, null, null).statusCode()).isEqualTo(401);
+    }
+
+    @Test
     void bothTenantDirectionsHaveIdenticalMissingIdResponsesAndNoListLeak() throws Exception {
         String a = account("docs-a");
         String b = account("docs-b");

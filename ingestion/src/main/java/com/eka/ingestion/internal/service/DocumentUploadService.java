@@ -12,6 +12,7 @@ import java.io.InputStream;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,32 @@ import org.springframework.stereotype.Service;
 @Service
 @ConditionalOnProperty(name = "eka.upload.enabled", havingValue = "true")
 public class DocumentUploadService {
+    private static final Set<String> PUBLIC_ERRORS =
+            Set.of(
+                    "MALWARE_DETECTED",
+                    "TYPE_MISMATCH",
+                    "CORRUPTED_FILE",
+                    "PASSWORD_PROTECTED",
+                    "MACRO_DETECTED",
+                    "ACTIVE_CONTENT_UNSUPPORTED",
+                    "FILE_TOO_LARGE",
+                    "SCAN_LIMIT_EXCEEDED",
+                    "SCAN_RETRY_EXHAUSTED",
+                    "SCAN_UNAVAILABLE",
+                    "SCANNER_UNAVAILABLE",
+                    "SCAN_INPUT_UNAVAILABLE",
+                    "INSPECTION_UNAVAILABLE",
+                    "EXTRACT_EMPTY",
+                    "EXTRACT_LIMIT",
+                    "PARSE_UNAVAILABLE",
+                    "PROCESSING_TIMEOUT",
+                    "PARSE_RETRY_EXHAUSTED",
+                    "EMBEDDING_CHUNK_LIMIT",
+                    "EMBEDDING_INPUT_LIMIT",
+                    "EMBEDDING_RETRY_EXHAUSTED",
+                    "EMBEDDING_PROVIDER_UNAVAILABLE",
+                    "EMBEDDING_UNAVAILABLE");
+
     private final CurrentAccount current;
     private final UploadRepository uploads;
     private final UploadStorage storage;
@@ -147,7 +174,16 @@ public class DocumentUploadService {
                 row.status(),
                 row.declaredSize(),
                 row.expiresAt(),
-                row.errorCode());
+                row.version(),
+                publicError(row));
+    }
+
+    private static String publicError(UploadRecord row) {
+        if (row.status() != UploadStatus.FAILED && row.status() != UploadStatus.REJECTED) {
+            return null;
+        }
+        String code = row.errorCode();
+        return code != null && PUBLIC_ERRORS.contains(code) ? code : "PROCESSING_FAILED";
     }
 
     public record View(
@@ -157,6 +193,7 @@ public class DocumentUploadService {
             UploadStatus status,
             long sizeBytes,
             Instant expiresAt,
+            long version,
             String errorCode) {}
 
     public record Intent(View document, UploadStorage.UploadForm upload) {}
