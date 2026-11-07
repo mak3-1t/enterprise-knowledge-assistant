@@ -16,10 +16,13 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers
 class DocumentMigrationTests {
     @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17-alpine");
+    static final PostgreSQLContainer POSTGRES =
+            new PostgreSQLContainer(
+                    org.testcontainers.utility.DockerImageName.parse("pgvector/pgvector:pg17")
+                            .asCompatibleSubstituteFor("postgres"));
 
     @Test
-    void v3ToV8PreservesAuthAndExistingV4DocumentMetadata() {
+    void v3ToV9PreservesAuthAndExistingV4DocumentMetadata() {
         var source =
                 new DriverManagerDataSource(
                         POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
@@ -70,8 +73,8 @@ class DocumentMigrationTests {
                 .update();
         var documentBefore = jdbc.sql("SELECT * FROM ingestion.documents").query().singleRow();
         var latest = Flyway.configure().dataSource(source).cleanDisabled(true).load();
-        assertThat(latest.migrate().migrationsExecuted).isEqualTo(4);
-        assertThat(latest.info().current().getVersion().getVersion()).isEqualTo("8");
+        assertThat(latest.migrate().migrationsExecuted).isEqualTo(5);
+        assertThat(latest.info().current().getVersion().getVersion()).isEqualTo("9");
         assertThat(jdbc.sql("SELECT * FROM auth.accounts").query().singleRow())
                 .isEqualTo(accountBefore);
         assertThat(jdbc.sql("SELECT * FROM auth.sessions").query().singleRow())

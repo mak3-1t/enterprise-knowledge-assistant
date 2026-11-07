@@ -37,7 +37,10 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class ParserApplicationTests {
     @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17-alpine");
+    static final PostgreSQLContainer POSTGRES =
+            new PostgreSQLContainer(
+                    org.testcontainers.utility.DockerImageName.parse("pgvector/pgvector:pg17")
+                            .asCompatibleSubstituteFor("postgres"));
 
     @Container static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka:4.0.0");
     private static final String TOPIC = "parser-app-" + UUID.randomUUID();
