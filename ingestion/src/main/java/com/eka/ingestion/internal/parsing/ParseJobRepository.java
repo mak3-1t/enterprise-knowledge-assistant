@@ -117,12 +117,8 @@ public class ParseJobRepository {
             return Optional.empty();
         }
         if (job.attempts() >= 4) {
-            uploads.fail(
-                    job.tenantId(),
-                    job.documentId(),
-                    job.generation(),
-                    false,
-                    "PARSE_RETRY_EXHAUSTED");
+            uploads.failProcessingForRecovery(
+                    job.tenantId(), job.documentId(), job.generation(), "PARSE_RETRY_EXHAUSTED");
             terminal(job.id(), "DEAD", "PARSE_RETRY_EXHAUSTED");
             return Optional.empty();
         }
@@ -207,7 +203,12 @@ public class ParseJobRepository {
             return false;
         }
         if (permanent || job.attempts() >= 4) {
-            uploads.fail(job.tenantId(), job.documentId(), job.generation(), false, code);
+            if (permanent) {
+                uploads.fail(job.tenantId(), job.documentId(), job.generation(), false, code);
+            } else {
+                uploads.failProcessingForRecovery(
+                        job.tenantId(), job.documentId(), job.generation(), code);
+            }
             terminal(job.id(), "DEAD", code);
         } else {
             jdbc.sql(

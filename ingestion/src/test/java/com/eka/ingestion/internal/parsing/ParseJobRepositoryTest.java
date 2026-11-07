@@ -162,7 +162,7 @@ class ParseJobRepositoryTest {
     }
 
     @Test
-    void crashedFourthAttemptAndPermanentEmptyExtractionFailClosed() {
+    void crashedFourthAttemptCanRecoverButPermanentEmptyExtractionCannot() throws Exception {
         var event = db.verified(tenant, user);
         db.accept(event);
         for (int attempt = 1; attempt <= 4; attempt++) {
@@ -180,6 +180,20 @@ class ParseJobRepositoryTest {
         db.jobs.failed(db.jobs.claim().orElseThrow(), "EXTRACT_EMPTY", true);
         assertThat(db.uploads.find(tenant, another.document()).orElseThrow().errorCode())
                 .isEqualTo("EXTRACT_EMPTY");
+        var failed = db.uploads.find(tenant, event.document()).orElseThrow();
+        var permanent = db.uploads.find(tenant, another.document()).orElseThrow();
+        assertThat(db.recover(tenant, another.document(), permanent.version())).isFalse();
+        assertThat(db.recover(UUID.randomUUID(), event.document(), failed.version())).isFalse();
+        assertThat(db.recover(tenant, event.document(), failed.version())).isTrue();
+        assertThat(db.recover(tenant, event.document(), failed.version())).isFalse();
+        assertThat(db.uploads.find(tenant, event.document()).orElseThrow().status())
+                .isEqualTo(UploadStatus.UPLOADED);
+        db.scans.dispatch();
+        assertThat(db.scans.clean(db.scans.claim().orElseThrow())).isTrue();
+        var next = db.event(tenant, event.document());
+        assertThat(next.version()).isGreaterThan(event.version());
+        db.accept(next);
+        assertThat(db.jobs.claim().orElseThrow().generation()).isEqualTo(next.version());
     }
 
     @Test
