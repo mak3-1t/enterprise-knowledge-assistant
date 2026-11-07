@@ -173,14 +173,69 @@ class KafkaParseIntegrationTest {
         }
     }
 
+    @Test
+    void malformedInputIsCommittedAfterSafeDeadLetterPublication() throws Exception {
+        String dlt = topic + "-dlt";
+        try (var admin = admin()) {
+            admin.createTopics(List.of(new NewTopic(dlt, 1, (short) 1)))
+                    .all()
+                    .get(20, TimeUnit.SECONDS);
+        }
+        String group = "parse-dead-letter-" + UUID.randomUUID();
+        var deadLetters = new ParseDeadLetterPublisher(template, JsonMapper.builder().build(), dlt);
+        var listener = listener(group, java.util.Optional.of(deadLetters));
+        try (var consumer =
+                new org.apache.kafka.clients.consumer.KafkaConsumer<String, String>(
+                        Map.of(
+                                org.apache.kafka.clients.consumer.ConsumerConfig
+                                        .BOOTSTRAP_SERVERS_CONFIG,
+                                KAFKA.getBootstrapServers(),
+                                org.apache.kafka.clients.consumer.ConsumerConfig
+                                        .ENABLE_AUTO_COMMIT_CONFIG,
+                                false,
+                                org.apache.kafka.clients.consumer.ConsumerConfig
+                                        .KEY_DESERIALIZER_CLASS_CONFIG,
+                                org.apache.kafka.common.serialization.StringDeserializer.class,
+                                org.apache.kafka.clients.consumer.ConsumerConfig
+                                        .VALUE_DESERIALIZER_CLASS_CONFIG,
+                                org.apache.kafka.common.serialization.StringDeserializer.class))) {
+            var partition = new TopicPartition(dlt, 0);
+            consumer.assign(List.of(partition));
+            consumer.seekToBeginning(List.of(partition));
+            var receipt =
+                    template.send(topic, "private-original-key", "private-original-payload")
+                            .get(20, TimeUnit.SECONDS)
+                            .getRecordMetadata();
+            waitUntil(() -> committed(group, receipt.partition()) >= receipt.offset() + 1);
+            var records = consumer.poll(Duration.ofSeconds(10)).records(partition);
+            assertThat(records).hasSize(1);
+            var record = records.getFirst();
+            assertThat(record.key())
+                    .isEqualTo(topic + "/" + receipt.partition() + "/" + receipt.offset());
+            assertThat(record.value())
+                    .contains("INVALID_EVENT")
+                    .doesNotContain("private-original-key", "private-original-payload");
+            assertThat(countJobs()).isZero();
+        } finally {
+            listener.stop();
+        }
+    }
+
     private ConcurrentMessageListenerContainer<String, String> listener(String group) {
+        return listener(group, java.util.Optional.empty());
+    }
+
+    private ConcurrentMessageListenerContainer<String, String> listener(
+            String group, java.util.Optional<ParseDeadLetterPublisher> deadLetters) {
         var properties = new KafkaProperties();
         properties.setBootstrapServers(List.of(KAFKA.getBootstrapServers()));
-        var factory = new ParserConfiguration(true, true).documentParseListenerFactory(properties);
+        var factory =
+                new ParserConfiguration(true, true)
+                        .documentParseListenerFactory(properties, deadLetters);
         var listener = factory.createContainer(topic);
         listener.getContainerProperties().setGroupId(group);
         listener.getContainerProperties().setPollTimeout(100);
-        var consumer = new ParseEventConsumer(db.jobs);
+        var consumer = new ParseEventConsumer(db.jobs, deadLetters.isPresent());
         listener.getContainerProperties()
                 .setMessageListener((MessageListener<String, String>) consumer::receive);
         listener.start();

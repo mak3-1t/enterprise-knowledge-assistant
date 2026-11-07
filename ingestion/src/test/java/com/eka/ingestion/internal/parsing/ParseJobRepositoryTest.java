@@ -82,6 +82,29 @@ class ParseJobRepositoryTest {
     }
 
     @Test
+    void operatorReplayUsesOnlyCurrentOutboxAndDoesNotDuplicateJobs() throws Exception {
+        var current = db.verified(tenant, user);
+        var stale = db.verified(tenant, user);
+        db.uploads.delete(tenant, user, false, stale.document());
+        String script =
+                java.nio.file.Files.readString(
+                        java.nio.file.Path.of("..", "scripts", "replay-document-intake.sql"));
+        String statement =
+                script.lines()
+                        .filter(line -> !line.startsWith("\\"))
+                        .collect(java.util.stream.Collectors.joining("\n"))
+                        .replace(":'event_id'::uuid", "?");
+        assertThat(db.jdbc.sql(statement).param(stale.id()).query(UUID.class).optional()).isEmpty();
+        assertThat(db.jdbc.sql(statement).param(UUID.randomUUID()).query(UUID.class).optional())
+                .isEmpty();
+        assertThat(db.jdbc.sql(statement).param(current.id()).query(UUID.class).optional())
+                .contains(current.id());
+        assertThat(db.jdbc.sql(statement).param(current.id()).query(UUID.class).optional())
+                .isEmpty();
+        assertThat(count("document_parse_jobs")).isEqualTo(1);
+    }
+
+    @Test
     void forgedTenantAndStaleEventsNeverCreateParseWork() {
         var event = db.verified(tenant, user);
         UUID foreign = UUID.randomUUID();
