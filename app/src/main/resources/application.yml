@@ -30,6 +30,8 @@ eka:
     parser:
       enabled: ${EKA_DOCUMENT_PARSER_ENABLED:false}
       group-id: ${EKA_DOCUMENT_PARSER_GROUP:eka-document-parser-v1}
+      dead-letter-enabled: ${EKA_DOCUMENT_PARSER_DLT_ENABLED:false}
+      dead-letter-topic: ${EKA_DOCUMENT_PARSER_DLT_TOPIC:eka.documents.parser.dlt.v1}
     kafka:
       enabled: ${EKA_INGESTION_KAFKA_ENABLED:false}
       create-topic: ${EKA_KAFKA_CREATE_TOPIC:false}

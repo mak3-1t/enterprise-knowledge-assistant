@@ -31,7 +31,8 @@ public class ParseJobRepository {
      * Returns only after the durable inbox transaction commits; Kafka offset follows that commit.
      */
     @Transactional
-    public void accept(String topic, int partition, long offset, String key, String payload) {
+    public ParseIntakeOutcome accept(
+            String topic, int partition, long offset, String key, String payload) {
         var event = ParseEvent.decode(key, payload);
         if (event == null
                 || !Set.of(
@@ -42,10 +43,10 @@ public class ParseJobRepository {
                                 "SOURCE_PARSED")
                         .contains(event.type())) {
             reject(topic, partition, offset, payload, "INVALID_EVENT");
-            return;
+            return ParseIntakeOutcome.INVALID_EVENT;
         }
         if (!event.type().equals("CONTENT_VERIFIED")) {
-            return;
+            return ParseIntakeOutcome.ACCEPTED;
         }
         var document =
                 jdbc.sql(
@@ -65,7 +66,7 @@ public class ParseJobRepository {
                         .optional();
         if (document.isEmpty()) {
             reject(topic, partition, offset, payload, "UNVERIFIED_EVENT");
-            return;
+            return ParseIntakeOutcome.UNVERIFIED_EVENT;
         }
         boolean exists =
                 jdbc.sql("SELECT count(*) FROM ingestion.document_parse_jobs WHERE id = ?")
@@ -74,12 +75,12 @@ public class ParseJobRepository {
                                 .single()
                         == 1;
         if (exists) {
-            return;
+            return ParseIntakeOutcome.ACCEPTED;
         }
         var row = uploads.find(event.tenant(), event.document()).orElseThrow();
         if (row.status() != UploadStatus.PROCESSING || row.version() != event.version()) {
             reject(topic, partition, offset, payload, "STALE_EVENT");
-            return;
+            return ParseIntakeOutcome.STALE_EVENT;
         }
         jdbc.sql(
                         """
@@ -91,6 +92,7 @@ public class ParseJobRepository {
                 .param(event.document())
                 .param(event.version())
                 .update();
+        return ParseIntakeOutcome.ACCEPTED;
     }
 
     @Transactional

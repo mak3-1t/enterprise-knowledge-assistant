@@ -1,5 +1,6 @@
 package com.eka.ingestion.internal.parsing;
 
+import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,7 +45,7 @@ public class ParserConfiguration {
 
     @Bean
     ConcurrentKafkaListenerContainerFactory<String, String> documentParseListenerFactory(
-            KafkaProperties properties) {
+            KafkaProperties properties, Optional<ParseDeadLetterPublisher> deadLetters) {
         var config = new java.util.HashMap<String, Object>(properties.buildConsumerProperties());
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
@@ -56,8 +57,19 @@ public class ParserConfiguration {
         var factory = new ConcurrentKafkaListenerContainerFactory<String, String>();
         factory.setConsumerFactory(new DefaultKafkaConsumerFactory<>(config));
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.RECORD);
-        factory.setCommonErrorHandler(
-                new DefaultErrorHandler(new FixedBackOff(1000, FixedBackOff.UNLIMITED_ATTEMPTS)));
+        var handler =
+                deadLetters
+                        .map(
+                                publisher ->
+                                        new DefaultErrorHandler(
+                                                publisher::publish, new FixedBackOff(1000, 3)))
+                        .orElseGet(
+                                () ->
+                                        new DefaultErrorHandler(
+                                                new FixedBackOff(
+                                                        1000, FixedBackOff.UNLIMITED_ATTEMPTS)));
+        handler.addNotRetryableExceptions(ParseRejected.class);
+        factory.setCommonErrorHandler(handler);
         return factory;
     }
 }

@@ -46,7 +46,7 @@ class ParseIntakeTest {
     @Test
     void consumerReturnsOnlyAfterInboxCallAndStripsDatabaseDiagnosticsOnFailure() {
         var jobs = mock(ParseJobRepository.class);
-        var consumer = new ParseEventConsumer(jobs);
+        var consumer = new ParseEventConsumer(jobs, false);
         var record = new ConsumerRecord<>("events", 0, 1L, "key", "payload");
         consumer.receive(record);
         verify(jobs).accept("events", 0, 1L, "key", "payload");
@@ -66,7 +66,8 @@ class ParseIntakeTest {
                 .isInstanceOf(IllegalStateException.class);
         var factory =
                 new ParserConfiguration(true, true)
-                        .documentParseListenerFactory(new KafkaProperties());
+                        .documentParseListenerFactory(
+                                new KafkaProperties(), java.util.Optional.empty());
         assertThat(factory.getContainerProperties().getAckMode())
                 .isEqualTo(ContainerProperties.AckMode.RECORD);
     }

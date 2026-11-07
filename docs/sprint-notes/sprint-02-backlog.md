@@ -144,3 +144,10 @@ Migration V9 and the leased worker now publish complete vector sets and READY at
 See [embedding configuration and verification](../document-embeddings.md). Full developer
 verification passed 192 tests on 2026-11-07 at 16:46:16 +07:00, including pgvector,
 Kafka and live ClamAV.
+
+## EKA-11 intake checkpoint
+
+EKA-10 merged via issue #49 / PR #50 at debcea5. Opt-in parser intake DLT and an
+operator replay command are implemented. See [configuration and replay](../document-intake-dlt.md).
+Full developer verification passed 196 tests on 2026-11-07 at 21:30:36 +07:00, including
+Kafka DLT, PostgreSQL replay and app startup. Terminal parse/embedding job recovery remains open.
