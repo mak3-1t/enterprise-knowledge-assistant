@@ -25,7 +25,10 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers
 class UploadRepositoryTest {
     @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17-alpine");
+    static final PostgreSQLContainer POSTGRES =
+            new PostgreSQLContainer(
+                    org.testcontainers.utility.DockerImageName.parse("pgvector/pgvector:pg17")
+                            .asCompatibleSubstituteFor("postgres"));
 
     private static final String HASH = "a".repeat(64);
     private static AnnotationConfigApplicationContext context;

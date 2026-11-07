@@ -20,7 +20,10 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers
 class ApplicationTests {
     @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17-alpine");
+    static final PostgreSQLContainer POSTGRES =
+            new PostgreSQLContainer(
+                    org.testcontainers.utility.DockerImageName.parse("pgvector/pgvector:pg17")
+                            .asCompatibleSubstituteFor("postgres"));
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
@@ -35,7 +38,7 @@ class ApplicationTests {
 
     @Test
     void contextLoadsWithMigratedDatabase() {
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("8");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("9");
         assertThat(jdbc.sql("SELECT count(*) FROM auth.accounts").query(Long.class).single())
                 .isZero();
         UUID marker = UUID.randomUUID();

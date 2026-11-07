@@ -126,3 +126,21 @@ read the current private source generation and preserve section offsets and page
 See [configuration and measured comparison](../document-chunking.md). Full developer
 verification passed 187 tests on 2026-11-07 at 14:27:33 +07:00, including the PostgreSQL
 checks for stale generations and foreign tenants, Kafka and live ClamAV. EKA-10 owns embeddings, persistence and the READY transition.
+
+## EKA-10 embedding adapter checkpoint
+
+EKA-9 merged via issue #47 / PR #48 at a3d7a5f. The opt-in Spring AI Ollama adapter
+accepts batches of up to 16 chunks from one tenant, document and source generation.
+Default batch size is 8. It disables server truncation and requires a matching model name,
+one nonzero finite vector of 1024 dimensions per input, and a configured model version label.
+The label is supplied by deployment configuration and does not pin the provider's model tag.
+The adapter bean is off by default via eka.ingestion.embedding.enabled.
+
+Six focused embedding and chunking unit tests passed, along with reactor compile/style.
+A separate packaged Java adapter smoke test on 2026-11-07 submitted two synthetic strings
+to local bge-m3:latest and received two 1024-dimensional vectors. The installed model
+digest observed from Ollama was 7907646426070047a77226ac3e684fbbe8410524f7b4a74d02837e43f2146bab.
+Migration V9 and the leased worker now publish complete vector sets and READY atomically.
+See [embedding configuration and verification](../document-embeddings.md). Full developer
+verification passed 192 tests on 2026-11-07 at 16:46:16 +07:00, including pgvector,
+Kafka and live ClamAV.

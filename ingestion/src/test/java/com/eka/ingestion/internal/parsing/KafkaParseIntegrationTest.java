@@ -42,7 +42,10 @@ import tools.jackson.databind.json.JsonMapper;
 @Testcontainers
 class KafkaParseIntegrationTest {
     @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17-alpine");
+    static final PostgreSQLContainer POSTGRES =
+            new PostgreSQLContainer(
+                    org.testcontainers.utility.DockerImageName.parse("pgvector/pgvector:pg17")
+                            .asCompatibleSubstituteFor("postgres"));
 
     @Container static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka:4.0.0");
     private static ParseDatabase db;

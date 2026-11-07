@@ -19,7 +19,10 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers
 class OutboxRelayRepositoryTest {
     @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17-alpine");
+    static final PostgreSQLContainer POSTGRES =
+            new PostgreSQLContainer(
+                    org.testcontainers.utility.DockerImageName.parse("pgvector/pgvector:pg17")
+                            .asCompatibleSubstituteFor("postgres"));
 
     private static RelayDatabase db;
     private final UUID tenant = UUID.randomUUID();

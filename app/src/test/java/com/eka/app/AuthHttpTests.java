@@ -60,7 +60,10 @@ import tools.jackson.databind.ObjectMapper;
 @Import(AuthHttpTests.TimeConfiguration.class)
 class AuthHttpTests {
     @Container
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17-alpine");
+    static final PostgreSQLContainer POSTGRES =
+            new PostgreSQLContainer(
+                    org.testcontainers.utility.DockerImageName.parse("pgvector/pgvector:pg17")
+                            .asCompatibleSubstituteFor("postgres"));
 
     static final String PASSWORD = "Test-only-long-password";
     static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");

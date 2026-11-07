@@ -15,7 +15,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-final class ParseDatabase implements AutoCloseable {
+public final class ParseDatabase implements AutoCloseable {
     final JdbcClient jdbc;
     final UploadRepository uploads;
     final ScanJobRepository scans;
@@ -26,7 +26,7 @@ final class ParseDatabase implements AutoCloseable {
     @EnableTransactionManagement
     static class Transactions {}
 
-    ParseDatabase(PostgreSQLContainer postgres) {
+    public ParseDatabase(PostgreSQLContainer postgres, Class<?>... extraBeans) {
         var source =
                 new DriverManagerDataSource(
                         postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
@@ -41,6 +41,12 @@ final class ParseDatabase implements AutoCloseable {
                 UploadRepository.class,
                 ScanJobRepository.class,
                 ParseJobRepository.class);
+        context.registerBean(
+                org.springframework.jdbc.core.JdbcTemplate.class,
+                () -> new org.springframework.jdbc.core.JdbcTemplate(source));
+        if (extraBeans.length > 0) {
+            context.register(extraBeans);
+        }
         context.refresh();
         jdbc = context.getBean(JdbcClient.class);
         uploads = context.getBean(UploadRepository.class);
@@ -100,7 +106,25 @@ final class ParseDatabase implements AutoCloseable {
                         event.occurredAt()));
     }
 
-    void reset() {
+    public <T> T bean(Class<T> type) {
+        return context.getBean(type);
+    }
+
+    public UUID parsed(UUID tenant, UUID user, String text) {
+        var event = verified(tenant, user);
+        accept(event);
+        var job = jobs.claim().orElseThrow();
+        if (!jobs.complete(
+                job,
+                new ParsedDocument(
+                        "apache-tika:3.3.3",
+                        java.util.List.of(new ParsedDocument.Section(null, text))))) {
+            throw new IllegalStateException("Could not seed a parsed document");
+        }
+        return event.document();
+    }
+
+    public void reset() {
         for (String table :
                 java.util.List.of(
                         "document_source_sections",
