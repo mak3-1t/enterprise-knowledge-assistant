@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
@@ -72,6 +73,8 @@ class ParserApplicationTests {
     private static final AtomicReference<String> REQUEST_BODY = new AtomicReference<>();
     private static final HttpClient HTTP =
             HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+    private static final AtomicInteger CHAT_REQUESTS = new AtomicInteger();
+    private static final AtomicReference<String> CHAT_BODY = new AtomicReference<>();
     private static HttpServer modelServer;
 
     @Value("${local.server.port}")
@@ -102,6 +105,11 @@ class ParserApplicationTests {
         registry.add("eka.ingestion.embedding.model-version", () -> "acceptance-v1");
         registry.add(
                 "eka.ingestion.embedding.base-url",
+                () -> "http://127.0.0.1:" + modelServer.getAddress().getPort());
+        registry.add("eka.chat.enabled", () -> "true");
+        registry.add("eka.chat.model", () -> MODEL);
+        registry.add(
+                "eka.chat.base-url",
                 () -> "http://127.0.0.1:" + modelServer.getAddress().getPort());
         registry.add("eka.upload.enabled", () -> "true");
         registry.add("eka.upload.scan.enabled", () -> "true");
@@ -173,6 +181,22 @@ class ParserApplicationTests {
         assertThat(denied.body()).isEqualTo(missing.body());
         assertThat(request("GET", path + "/download", foreign, null, null).statusCode())
                 .isEqualTo(404);
+        var question = Map.of("question", "What text is in the document?");
+        var answer = request("POST", "/api/chat", owner, null, question);
+        assertThat(answer.statusCode()).isEqualTo(200);
+        assertThat(json.readTree(answer.body()).get("answer").asText())
+                .isEqualTo("The text is hello.");
+        var messages = json.readTree(CHAT_BODY.get()).get("messages");
+        assertThat(messages.get(0).get("role").asText()).isEqualTo("system");
+        var input = json.readTree(messages.get(1).get("content").asText());
+        assertThat(input.get("evidence").get(0).asText()).isEqualTo("hello");
+
+        var noEvidence = request("POST", "/api/chat", foreign, null, question);
+        assertThat(noEvidence.statusCode()).isEqualTo(200);
+        assertThat(json.readTree(noEvidence.body()).get("status").asText())
+                .isEqualTo("NO_EVIDENCE");
+        assertThat(CHAT_REQUESTS.get()).isEqualTo(1);
+        assertThat(request("POST", "/api/chat", null, null, question).statusCode()).isEqualTo(401);
         assertThat(parses.loadCurrent(UUID.randomUUID(), UUID.fromString(id))).isEmpty();
 
         assertThat(request("DELETE", path, owner, null, null).statusCode()).isEqualTo(204);
@@ -210,6 +234,25 @@ class ParserApplicationTests {
                         exchange.getResponseBody().write(payload);
                     } catch (InterruptedException interrupted) {
                         Thread.currentThread().interrupt();
+                    }
+                });
+        modelServer.createContext(
+                "/api/chat",
+                exchange -> {
+                    try (exchange) {
+                        CHAT_REQUESTS.incrementAndGet();
+                        CHAT_BODY.set(
+                                new String(
+                                        exchange.getRequestBody().readAllBytes(),
+                                        StandardCharsets.UTF_8));
+                        byte[] payload =
+                                """
+                        {"model":"fixture","created_at":"2026-01-01T00:00:00Z","message":{"role":"assistant","content":"The text is hello."},"done":true,"done_reason":"stop","prompt_eval_count":10,"eval_count":5,"total_duration":10,"load_duration":1,"prompt_eval_duration":1,"eval_duration":1}
+                        """
+                                        .getBytes(StandardCharsets.UTF_8);
+                        exchange.getResponseHeaders().set("Content-Type", "application/json");
+                        exchange.sendResponseHeaders(200, payload.length);
+                        exchange.getResponseBody().write(payload);
                     }
                 });
         modelServer.start();
