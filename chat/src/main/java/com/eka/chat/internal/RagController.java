@@ -30,7 +30,7 @@ class RagController {
     }
 
     @PostMapping(value = "/api/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public ResponseEntity<Flux<ServerSentEvent<Map<String, String>>>> stream(
+    public ResponseEntity<Flux<ServerSentEvent<Map<String, Object>>>> stream(
             @RequestBody Question request) {
         var events =
                 service.stream(request.question())
@@ -48,7 +48,7 @@ class RagController {
                                                 .map(
                                                         ignored ->
                                                                 ServerSentEvent
-                                                                        .<Map<String, String>>
+                                                                        .<Map<String, Object>>
                                                                                 builder()
                                                                         .comment("keepalive")
                                                                         .build())
