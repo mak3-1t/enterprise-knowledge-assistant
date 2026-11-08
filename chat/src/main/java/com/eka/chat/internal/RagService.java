@@ -2,8 +2,11 @@ package com.eka.chat.internal;
 
 import com.eka.ingestion.api.DocumentRetrieval.Match;
 import com.eka.ingestion.api.SemanticDocumentSearch;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import tools.jackson.databind.ObjectMapper;
 
 final class RagService {
@@ -25,17 +28,11 @@ final class RagService {
     }
 
     Answer answer(String question) {
-        if (question == null || question.isBlank() || question.length() > 2000) {
-            throw new IllegalArgumentException("INVALID_QUESTION");
+        String input = prepare(question);
+        if (input == null) {
+            return new Answer("NO_EVIDENCE", null);
         }
         try {
-            var evidence = evidence(search.search(question.strip(), 5));
-            if (evidence.isEmpty()) {
-                return new Answer("NO_EVIDENCE", null);
-            }
-            String input =
-                    json.writeValueAsString(
-                            Map.of("question", question.strip(), "evidence", evidence));
             String answer = model.answer(INSTRUCTIONS, input);
             if (answer == null || answer.isBlank() || answer.length() > 8192) {
                 throw new ChatUnavailable();
@@ -45,6 +42,55 @@ final class RagService {
             throw new ChatUnavailable();
         }
     }
+
+    Flux<StreamEvent> stream(String question) {
+        String input = prepare(question);
+        if (input == null) {
+            return Flux.just(new StreamEvent("done", "NO_EVIDENCE"));
+        }
+        return Flux.defer(
+                        () -> {
+                            var text = new StringBuilder();
+                            return model.stream(INSTRUCTIONS, input)
+                                    .takeUntilOther(
+                                            Mono.delay(Duration.ofSeconds(90))
+                                                    .then(Mono.error(new ChatUnavailable())))
+                                    .map(
+                                            delta -> {
+                                                if (delta.length() > 8192 - text.length()) {
+                                                    throw new ChatUnavailable();
+                                                }
+                                                text.append(delta);
+                                                return new StreamEvent("delta", delta);
+                                            })
+                                    .concatWith(
+                                            Mono.fromSupplier(
+                                                    () -> {
+                                                        if (text.toString().isBlank()) {
+                                                            throw new ChatUnavailable();
+                                                        }
+                                                        return new StreamEvent("done", "ANSWERED");
+                                                    }));
+                        })
+                .onErrorReturn(new StreamEvent("error", "CHAT_UNAVAILABLE"));
+    }
+
+    private String prepare(String question) {
+        if (question == null || question.isBlank() || question.length() > 2000) {
+            throw new IllegalArgumentException("INVALID_QUESTION");
+        }
+        try {
+            String normalized = question.strip();
+            var evidence = evidence(search.search(normalized, 5));
+            return evidence.isEmpty()
+                    ? null
+                    : json.writeValueAsString(Map.of("question", normalized, "evidence", evidence));
+        } catch (RuntimeException failure) {
+            throw new ChatUnavailable();
+        }
+    }
+
+    record StreamEvent(String name, String value) {}
 
     private static List<String> evidence(List<Match> matches) {
         var result = new java.util.ArrayList<String>();
