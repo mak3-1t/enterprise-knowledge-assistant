@@ -101,3 +101,26 @@ verify that the cited passage logically entails every sentence.
     & .\scripts\verify-document-scan.ps1 -LogPath target/sprint-03-citations-verify.log
 
 Developer verification passed 205 tests on 2026-11-08 at 20:28:33 +07:00, including citation mapping on authenticated HTTP and SSE.
+
+## EKA-17 conversation checkpoint
+
+PR #66 merged citations at 4c6767f. Flyway V10 adds private conversations and
+atomic question/response turns. All routes require the authenticated owner and tenant.
+A missing or inaccessible conversation returns the same 404.
+
+- POST /api/chat/conversations creates a conversation and returns its id and revision.
+- POST /api/chat/conversations/{id}/turns accepts question and expectedRevision.
+  A stale revision returns 409. The model call runs outside the write transaction.
+  Only one competing request at the same revision can commit.
+- GET /api/chat/conversations/{id} returns up to 20 newest turns. Use the oldest
+  returned revision as the exclusive before cursor. A turn response is null if a
+  cited document is no longer READY at the cited generation.
+
+The prompt can include up to six prior questions with a total budget of 4,000
+UTF-16 code units. Previous answers stay out of the model prompt because their
+sources can change. Retrieval still uses the current question. Conversation
+writes use the synchronous endpoint. Existing SSE remains stateless.
+
+    & .\scripts\verify-document-scan.ps1 -LogPath target/sprint-03-conversations-verify.log
+
+Developer verification passed 205 tests on 2026-11-08 at 21:24:52 +07:00, including Flyway V10, authenticated conversation turns, stale revision rejection and response redaction after source deletion.

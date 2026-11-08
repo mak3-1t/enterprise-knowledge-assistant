@@ -15,6 +15,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.servlet.config.annotation.AsyncSupportConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -86,6 +87,11 @@ class RagConfiguration implements WebMvcConfigurer {
 
     private static Prompt prompt(String instructions, String input) {
         return new Prompt(List.of(new SystemMessage(instructions), new UserMessage(input)));
+    }
+
+    @Bean
+    ConversationRepository conversationRepository(JdbcClient jdbc, ObjectMapper json) {
+        return new ConversationRepository(jdbc, json);
     }
 
     @Bean
