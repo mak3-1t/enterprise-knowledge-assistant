@@ -224,7 +224,78 @@ class ParserApplicationTests {
         assertThat(CHAT_REQUESTS.get()).isEqualTo(2);
         assertThat(parses.loadCurrent(UUID.randomUUID(), UUID.fromString(id))).isEmpty();
 
+        String conversations = "/api/chat/conversations";
+        var createdConversation = request("POST", conversations, owner, null, Map.of());
+        assertThat(createdConversation.statusCode()).isEqualTo(201);
+        String conversation =
+                conversations + "/" + json.readTree(createdConversation.body()).get("id").asText();
+        var firstTurn = Map.of("question", "First question", "expectedRevision", 0);
+        assertThat(request("POST", conversation + "/turns", owner, null, firstTurn).statusCode())
+                .isEqualTo(200);
+        assertThat(request("POST", conversation + "/turns", owner, null, firstTurn).statusCode())
+                .isEqualTo(409);
+        assertThat(
+                        request(
+                                        "POST",
+                                        conversation + "/turns",
+                                        owner,
+                                        null,
+                                        Map.of(
+                                                "question",
+                                                "Follow-up question",
+                                                "expectedRevision",
+                                                1))
+                                .statusCode())
+                .isEqualTo(200);
+        var followUp =
+                json.readTree(
+                        json.readTree(CHAT_BODY.get())
+                                .get("messages")
+                                .get(1)
+                                .get("content")
+                                .asText());
+        assertThat(followUp.get("previousQuestions").get(0).asText()).isEqualTo("First question");
+        var history = request("GET", conversation, owner, null, null);
+        assertThat(history.statusCode()).isEqualTo(200);
+        assertThat(json.readTree(history.body()).get("revision").asLong()).isEqualTo(2);
+        assertThat(json.readTree(history.body()).get("turns").size()).isEqualTo(2);
+        assertThat(request("GET", conversation + "?before=2", owner, null, null).body())
+                .contains("First question")
+                .doesNotContain("Follow-up question");
+        var foreignConversation = request("GET", conversation, foreign, null, null);
+        assertThat(foreignConversation.statusCode()).isEqualTo(404);
+        assertThat(foreignConversation.body())
+                .isEqualTo(
+                        request("GET", conversations + "/" + UUID.randomUUID(), foreign, null, null)
+                                .body());
+        jdbc.sql(
+                        """
+                INSERT INTO auth.accounts (id, tenant_id, email, password_hash, role)
+                SELECT gen_random_uuid(), a.tenant_id, 'viewer@example.test', a.password_hash, 'VIEWER'
+                FROM auth.accounts a JOIN auth.tenants t ON t.id = a.tenant_id WHERE t.slug = 'sprint-two-a'
+                """)
+                .update();
+        var viewerLogin =
+                request(
+                        "POST",
+                        "/api/auth/login",
+                        null,
+                        null,
+                        Map.of(
+                                "tenantSlug",
+                                "sprint-two-a",
+                                "email",
+                                "viewer@example.test",
+                                "password",
+                                PASSWORD));
+        assertThat(viewerLogin.statusCode()).isEqualTo(200);
+        String viewer = json.readTree(viewerLogin.body()).get("accessToken").asText();
+        assertThat(request("GET", conversation, viewer, null, null).statusCode()).isEqualTo(404);
         assertThat(request("DELETE", path, owner, null, null).statusCode()).isEqualTo(204);
+        var redacted =
+                json.readTree(request("GET", conversation, owner, null, null).body()).get("turns");
+        assertThat(redacted.get(0).get("response").isNull()).isTrue();
+        assertThat(redacted.get(1).get("response").isNull()).isTrue();
         assertThat(vectorCount(UUID.fromString(id))).isZero();
         assertThat(request("GET", path + "/download", owner, null, null).statusCode())
                 .isEqualTo(404);
