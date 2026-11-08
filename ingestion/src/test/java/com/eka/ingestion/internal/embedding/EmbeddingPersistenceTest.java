@@ -3,12 +3,15 @@ package com.eka.ingestion.internal.embedding;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.eka.auth.api.AuthenticatedAccount;
+import com.eka.ingestion.api.DocumentRetrieval;
 import com.eka.ingestion.internal.chunking.ChunkSettings;
 import com.eka.ingestion.internal.chunking.DocumentChunkService;
 import com.eka.ingestion.internal.parsing.ParseDatabase;
 import com.eka.ingestion.internal.parsing.ParseJobRepository;
 import com.eka.ingestion.internal.persistence.UploadRepository;
 import com.eka.ingestion.internal.persistence.UploadStatus;
+import com.eka.ingestion.internal.retrieval.PgvectorDocumentRetrieval;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
@@ -159,6 +162,43 @@ class EmbeddingPersistenceTest {
                                 .single())
                 .isZero();
         assertThat(vectorCount(doc)).isZero();
+    }
+
+    @Test
+    void retrievalFiltersTenantModelAndLifecycleBeforeRankingAndPreservesUnicodeOffsets()
+            throws Exception {
+        String text = "🚀".repeat(64) + "Tiếng Việt";
+        UUID own = db.parsed(tenant, user, text);
+        var retrieval =
+                new PgvectorDocumentRetrieval(
+                        () -> new AuthenticatedAccount(user, tenant, "VIEWER"), jdbc());
+        assertThat(retrieval.search(vector(), "fixture", "v1", 10)).isEmpty();
+        var worker = worker(input -> List.of(vector()));
+        worker.poll();
+        UUID otherTenant = UUID.randomUUID();
+        UUID otherUser = UUID.randomUUID();
+        UUID foreign = db.parsed(otherTenant, otherUser, "foreign secret");
+        worker.poll();
+
+        var matches = retrieval.search(vector(), "fixture", "v1", 10);
+        assertThat(matches)
+                .extracting(DocumentRetrieval.Match::documentId)
+                .containsExactly(own, own);
+        assertThat(matches)
+                .extracting(DocumentRetrieval.Match::text)
+                .containsExactly("🚀".repeat(64), "Tiếng Việt");
+        assertThat(matches.get(1).startOffset()).isEqualTo(128);
+        assertThat(matches.getFirst().distance()).isZero();
+        assertThat(retrieval.search(vector(), "fixture", "v1", 1)).hasSize(1);
+        assertThat(retrieval.search(vector(), "fixture", "v2", 10)).isEmpty();
+        var foreignRetrieval =
+                new PgvectorDocumentRetrieval(
+                        () -> new AuthenticatedAccount(otherUser, otherTenant, "ADMIN"), jdbc());
+        assertThat(foreignRetrieval.search(vector(), "fixture", "v1", 10))
+                .extracting(DocumentRetrieval.Match::documentId)
+                .containsExactly(foreign);
+        uploads().delete(tenant, user, false, own);
+        assertThat(retrieval.search(vector(), "fixture", "v1", 10)).isEmpty();
     }
 
     private EmbeddingWorker worker(EmbeddingProvider provider) {
