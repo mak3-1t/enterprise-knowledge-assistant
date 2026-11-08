@@ -197,6 +197,24 @@ class ParserApplicationTests {
                 .isEqualTo("NO_EVIDENCE");
         assertThat(CHAT_REQUESTS.get()).isEqualTo(1);
         assertThat(request("POST", "/api/chat", null, null, question).statusCode()).isEqualTo(401);
+        var stream = request("POST", "/api/chat/stream", owner, null, question);
+        assertThat(stream.statusCode()).isEqualTo(200);
+        assertThat(stream.headers().firstValue("Content-Type"))
+                .hasValueSatisfying(value -> assertThat(value).startsWith("text/event-stream"));
+        assertThat(stream.body())
+                .containsSubsequence(
+                        "event:delta",
+                        "The text is ",
+                        "event:delta",
+                        "hello.",
+                        "event:done",
+                        "ANSWERED");
+        var emptyStream = request("POST", "/api/chat/stream", foreign, null, question);
+        assertThat(emptyStream.statusCode()).isEqualTo(200);
+        assertThat(emptyStream.body())
+                .contains("event:done", "NO_EVIDENCE")
+                .doesNotContain("event:delta");
+        assertThat(CHAT_REQUESTS.get()).isEqualTo(2);
         assertThat(parses.loadCurrent(UUID.randomUUID(), UUID.fromString(id))).isEmpty();
 
         assertThat(request("DELETE", path, owner, null, null).statusCode()).isEqualTo(204);
@@ -245,6 +263,20 @@ class ParserApplicationTests {
                                 new String(
                                         exchange.getRequestBody().readAllBytes(),
                                         StandardCharsets.UTF_8));
+                        if (CHAT_BODY.get().contains("\"stream\":true")) {
+                            byte[] stream =
+                                    """
+                                    {"model":"fixture","message":{"role":"assistant","content":"The text is "},"done":false}
+                                    {"model":"fixture","message":{"role":"assistant","content":"hello."},"done":false}
+                                    {"model":"fixture","message":{"role":"assistant","content":""},"done":true,"done_reason":"stop","prompt_eval_count":10,"eval_count":5,"total_duration":10,"load_duration":1,"prompt_eval_duration":1,"eval_duration":1}
+                                    """
+                                            .getBytes(StandardCharsets.UTF_8);
+                            exchange.getResponseHeaders()
+                                    .set("Content-Type", "application/x-ndjson");
+                            exchange.sendResponseHeaders(200, stream.length);
+                            exchange.getResponseBody().write(stream);
+                            return;
+                        }
                         byte[] payload =
                                 """
                         {"model":"fixture","created_at":"2026-01-01T00:00:00Z","message":{"role":"assistant","content":"The text is hello."},"done":true,"done_reason":"stop","prompt_eval_count":10,"eval_count":5,"total_duration":10,"load_duration":1,"prompt_eval_duration":1,"eval_duration":1}

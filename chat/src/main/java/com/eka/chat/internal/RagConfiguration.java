@@ -16,11 +16,19 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.servlet.config.annotation.AsyncSupportConfigurer;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import reactor.core.publisher.Flux;
 import tools.jackson.databind.ObjectMapper;
 
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(name = "eka.chat.enabled", havingValue = "true")
-class RagConfiguration {
+class RagConfiguration implements WebMvcConfigurer {
+    @Override
+    public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
+        configurer.setDefaultTimeout(Duration.ofSeconds(95).toMillis());
+    }
+
     @Bean
     LlmProvider ragLlmProvider(
             @Value("${eka.chat.provider:ollama}") String provider,
@@ -53,15 +61,31 @@ class RagConfiguration {
                                         .numPredict(256)
                                         .build())
                         .build();
-        return (instructions, input) ->
-                chat.call(
-                                new Prompt(
-                                        List.of(
-                                                new SystemMessage(instructions),
-                                                new UserMessage(input))))
-                        .getResult()
-                        .getOutput()
-                        .getText();
+        return new LlmProvider() {
+            @Override
+            public String answer(String instructions, String input) {
+                return chat.call(prompt(instructions, input)).getResult().getOutput().getText();
+            }
+
+            @Override
+            public Flux<String> stream(String instructions, String input) {
+                return chat.stream(prompt(instructions, input))
+                        .handle(
+                                (response, sink) -> {
+                                    var result = response.getResult();
+                                    if (result != null && result.getOutput() != null) {
+                                        String delta = result.getOutput().getText();
+                                        if (delta != null && !delta.isEmpty()) {
+                                            sink.next(delta);
+                                        }
+                                    }
+                                });
+            }
+        };
+    }
+
+    private static Prompt prompt(String instructions, String input) {
+        return new Prompt(List.of(new SystemMessage(instructions), new UserMessage(input)));
     }
 
     @Bean

@@ -61,3 +61,24 @@ Verify with the full Docker suite:
     & .\scripts\verify-document-scan.ps1 -LogPath target/sprint-03-rag-verify.log
 
 Developer verification passed 202 tests on 2026-11-08 at 09:51:42 +07:00, including RAG over authenticated HTTP. The app test used a deterministic Ollama endpoint. A separate local Qwen API smoke answered a synthetic question correctly.
+
+## EKA-15 streaming checkpoint
+
+PR #62 merged the synchronous chat provider at 3d26be1. Authenticated POST
+/api/chat/stream accepts the same JSON question and returns text/event-stream.
+Use fetch with the bearer token and AbortController for cancellation.
+
+Events use delta for text and done for ANSWERED or NO_EVIDENCE. An upstream failure
+after streaming starts emits error with CHAT_UNAVAILABLE and ends the response.
+The endpoint sends comment heartbeats every five seconds to detect closed connections.
+When the servlet detects a failed write or timeout, cancellation propagates to the
+upstream subscription. The provider stream has a 90-second deadline and the existing
+output size limit. Embedding and retrieval finish in the authenticated request before
+the stream starts, so heartbeat and cancellation apply to generation.
+
+The developer suite exercises provider cancellation, ordered deltas, safe errors and
+the authenticated SSE HTTP contract using a deterministic Ollama endpoint.
+
+    & .\scripts\verify-document-scan.ps1 -LogPath target/sprint-03-sse-verify.log
+
+Developer verification passed 204 tests on 2026-11-08 at 20:15:15 +07:00, including authenticated SSE, ordered deltas, no-evidence completion and provider subscription cancellation.
