@@ -38,3 +38,26 @@ The original schedule allows two weeks. Reassess after the retrieval and provide
 contracts are verified. Story IDs in this plan are internal planning references.
 
 Developer verification passed 199 tests on 2026-11-08 at 09:38:19 +07:00, including tenant retrieval on pgvector and live ClamAV.
+
+## EKA-14 provider and prompt checkpoint
+
+PR #60 merged the tenant retrieval baseline at 953d5d1. The opt-in chat endpoint
+accepts a JSON question through POST /api/chat. It uses the same embedding model and
+version as ingestion, limits retrieval to five chunks and includes up to 12,000 UTF-16
+code units of evidence in a structured prompt. System instructions and evidence use
+separate message roles. Empty retrieval returns NO_EVIDENCE without a chat model call.
+Provider failures return CHAT_UNAVAILABLE without exposing diagnostic details.
+
+Enable eka.chat.enabled and eka.ingestion.embedding.enabled and set the required
+embedding model version. Chat configuration supports eka.chat.provider (ollama),
+eka.chat.base-url (local Ollama by default) and eka.chat.model (the local Qwen model
+from Sprint 0 by default). Use an approved model endpoint for tenant document text.
+The initial endpoint is synchronous. Streaming, citation validation, persistence and
+a calibrated relevance threshold are tracked separately. Prompt instructions alone
+do not guarantee model grounding.
+
+Verify with the full Docker suite:
+
+    & .\scripts\verify-document-scan.ps1 -LogPath target/sprint-03-rag-verify.log
+
+Developer verification passed 202 tests on 2026-11-08 at 09:51:42 +07:00, including RAG over authenticated HTTP. The app test used a deterministic Ollama endpoint. A separate local Qwen API smoke answered a synthetic question correctly.

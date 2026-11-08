@@ -1,5 +1,8 @@
 package com.eka.ingestion.internal.embedding;
 
+import com.eka.auth.api.CurrentAccount;
+import com.eka.ingestion.api.DocumentRetrieval;
+import com.eka.ingestion.api.SemanticDocumentSearch;
 import com.eka.ingestion.internal.chunking.DocumentChunkService;
 import java.time.Duration;
 import org.springframework.ai.ollama.api.OllamaApi;
@@ -32,6 +35,29 @@ class EmbeddingConfiguration {
             EmbeddingBatch embedder,
             EmbeddingSettings settings) {
         return new EmbeddingWorker(jobs, chunks, embedder, settings);
+    }
+
+    @Bean
+    SemanticDocumentSearch semanticDocumentSearch(
+            CurrentAccount account,
+            DocumentRetrieval retrieval,
+            EmbeddingBatch embedder,
+            EmbeddingSettings settings) {
+        return (question, limit) -> {
+            account.require();
+            if (question == null
+                    || question.isBlank()
+                    || question.length() > 2000
+                    || limit < 1
+                    || limit > 10) {
+                throw new IllegalArgumentException("Invalid semantic search input");
+            }
+            return retrieval.search(
+                    embedder.embedQuestion(question),
+                    settings.model(),
+                    settings.modelVersion(),
+                    limit);
+        };
     }
 
     @Bean

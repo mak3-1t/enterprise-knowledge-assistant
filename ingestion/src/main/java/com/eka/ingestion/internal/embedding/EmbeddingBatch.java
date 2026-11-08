@@ -32,19 +32,28 @@ final class EmbeddingBatch {
             }
             input.add(text);
         }
-        List<float[]> vectors = provider.embed(List.copyOf(input));
-        if (vectors == null || vectors.size() != chunks.size()) {
-            throw new EmbeddingFailure("EMBEDDING_RESPONSE_COUNT");
-        }
+        List<float[]> vectors = embedTexts(input);
         List<EmbeddedChunk> result = new ArrayList<>(chunks.size());
         for (int i = 0; i < chunks.size(); i++) {
             var vector = vectors.get(i);
-            validate(vector);
             result.add(
                     new EmbeddedChunk(
                             chunks.get(i), settings.model(), settings.modelVersion(), vector));
         }
         return List.copyOf(result);
+    }
+
+    float[] embedQuestion(String question) {
+        return embedTexts(List.of(question)).getFirst();
+    }
+
+    private List<float[]> embedTexts(List<String> input) {
+        List<float[]> vectors = provider.embed(List.copyOf(input));
+        if (vectors == null || vectors.size() != input.size()) {
+            throw new EmbeddingFailure("EMBEDDING_RESPONSE_COUNT");
+        }
+        vectors.forEach(EmbeddingBatch::validate);
+        return vectors;
     }
 
     private static void validate(float[] vector) {
