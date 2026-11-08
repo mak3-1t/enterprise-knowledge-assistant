@@ -82,3 +82,22 @@ the authenticated SSE HTTP contract using a deterministic Ollama endpoint.
     & .\scripts\verify-document-scan.ps1 -LogPath target/sprint-03-sse-verify.log
 
 Developer verification passed 204 tests on 2026-11-08 at 20:15:15 +07:00, including authenticated SSE, ordered deltas, no-evidence completion and provider subscription cancellation.
+
+## EKA-16 citation checkpoint
+
+PR #64 merged SSE at 17b0d7a. Chat assigns request-local IDs such as S1 only to
+chunks that fit the prompt. The model refers to them with bracketed markers.
+The server resolves used IDs against that request's tenant-scoped retrieval results.
+Response citations contain document ID, filename, source generation, chunk and section
+ordinals, a nullable PDF page, and half-open UTF-16 offsets within the section.
+
+POST /api/chat includes a citations array. POST /api/chat/stream emits a citations
+event with the list in its value field before done ANSWERED. Deltas are provisional
+until done. Clients must discard them on error or done NO_EVIDENCE. An unrecognized
+marker fails safely, repeated IDs are deduplicated, and an answer without markers
+cannot be marked ANSWERED. A recognized ID verifies the source link. It does not
+verify that the cited passage logically entails every sentence.
+
+    & .\scripts\verify-document-scan.ps1 -LogPath target/sprint-03-citations-verify.log
+
+Developer verification passed 205 tests on 2026-11-08 at 20:28:33 +07:00, including citation mapping on authenticated HTTP and SSE.

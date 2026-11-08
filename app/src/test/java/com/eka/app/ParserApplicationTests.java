@@ -185,11 +185,16 @@ class ParserApplicationTests {
         var answer = request("POST", "/api/chat", owner, null, question);
         assertThat(answer.statusCode()).isEqualTo(200);
         assertThat(json.readTree(answer.body()).get("answer").asText())
-                .isEqualTo("The text is hello.");
+                .isEqualTo("The text is hello. [S1]");
+        var citation = json.readTree(answer.body()).get("citations").get(0);
+        assertThat(citation.get("id").asText()).isEqualTo("S1");
+        assertThat(citation.get("documentId").asText()).isEqualTo(id);
+        assertThat(citation.get("filename").asText()).isEqualTo("hello.txt");
+        assertThat(citation.get("page").isNull()).isTrue();
         var messages = json.readTree(CHAT_BODY.get()).get("messages");
         assertThat(messages.get(0).get("role").asText()).isEqualTo("system");
         var input = json.readTree(messages.get(1).get("content").asText());
-        assertThat(input.get("evidence").get(0).asText()).isEqualTo("hello");
+        assertThat(input.get("evidence").get(0).get("text").asText()).isEqualTo("hello");
 
         var noEvidence = request("POST", "/api/chat", foreign, null, question);
         assertThat(noEvidence.statusCode()).isEqualTo(200);
@@ -207,6 +212,8 @@ class ParserApplicationTests {
                         "The text is ",
                         "event:delta",
                         "hello.",
+                        "event:citations",
+                        "hello.txt",
                         "event:done",
                         "ANSWERED");
         var emptyStream = request("POST", "/api/chat/stream", foreign, null, question);
@@ -267,7 +274,7 @@ class ParserApplicationTests {
                             byte[] stream =
                                     """
                                     {"model":"fixture","message":{"role":"assistant","content":"The text is "},"done":false}
-                                    {"model":"fixture","message":{"role":"assistant","content":"hello."},"done":false}
+                                    {"model":"fixture","message":{"role":"assistant","content":"hello. [S1]"},"done":false}
                                     {"model":"fixture","message":{"role":"assistant","content":""},"done":true,"done_reason":"stop","prompt_eval_count":10,"eval_count":5,"total_duration":10,"load_duration":1,"prompt_eval_duration":1,"eval_duration":1}
                                     """
                                             .getBytes(StandardCharsets.UTF_8);
@@ -279,7 +286,7 @@ class ParserApplicationTests {
                         }
                         byte[] payload =
                                 """
-                        {"model":"fixture","created_at":"2026-01-01T00:00:00Z","message":{"role":"assistant","content":"The text is hello."},"done":true,"done_reason":"stop","prompt_eval_count":10,"eval_count":5,"total_duration":10,"load_duration":1,"prompt_eval_duration":1,"eval_duration":1}
+                        {"model":"fixture","created_at":"2026-01-01T00:00:00Z","message":{"role":"assistant","content":"The text is hello. [S1]"},"done":true,"done_reason":"stop","prompt_eval_count":10,"eval_count":5,"total_duration":10,"load_duration":1,"prompt_eval_duration":1,"eval_duration":1}
                         """
                                         .getBytes(StandardCharsets.UTF_8);
                         exchange.getResponseHeaders().set("Content-Type", "application/json");
