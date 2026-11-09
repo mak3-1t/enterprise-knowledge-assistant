@@ -190,6 +190,32 @@ class RagServiceTest {
                 .containsExactly(new RagService.StreamEvent("done", "NO_EVIDENCE"));
     }
 
+    @Test
+    void modelDeclineCannotPublishCitations() {
+        var provider =
+                new LlmProvider() {
+                    @Override
+                    public String answer(String instructions, String input) {
+                        return "NO_EVIDENCE [S1]";
+                    }
+
+                    @Override
+                    public reactor.core.publisher.Flux<String> stream(
+                            String instructions, String input) {
+                        return reactor.core.publisher.Flux.just("NO_", "EVIDENCE [S1]");
+                    }
+                };
+        var service =
+                new RagService((question, limit) -> List.of(match("source")), provider, JSON, 0.45);
+        assertThat(service.answer("unrelated"))
+                .isEqualTo(new RagService.Answer("NO_EVIDENCE", null, List.of()));
+        assertThat(service.stream("unrelated").collectList().block(java.time.Duration.ofSeconds(2)))
+                .containsExactly(
+                        new RagService.StreamEvent("delta", "NO_"),
+                        new RagService.StreamEvent("delta", "EVIDENCE [S1]"),
+                        new RagService.StreamEvent("done", "NO_EVIDENCE"));
+    }
+
     private static Match match(String text) {
         return new Match(UUID.randomUUID(), "test.txt", 1, 0, 0, null, 0, text.length(), text, 0.0);
     }

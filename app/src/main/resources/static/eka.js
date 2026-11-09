@@ -90,7 +90,7 @@ action('upload', async (form) => {
   const multipart = new FormData();
   for (const [name, value] of Object.entries(intent.upload.fields)) multipart.append(name, value);
   multipart.append('file', file, file.name);
-  await fetch(intent.upload.url, { method: 'POST', body: multipart, mode: 'no-cors', redirect: 'error' });
+  await fetch(intent.upload.url, { method: 'POST', body: multipart, mode: 'no-cors', credentials: 'omit' });
   await api('/api/documents/' + intent.document.id + '/complete', { method: 'POST', body: '{}' });
   get('upload').reset();
   await documents();
