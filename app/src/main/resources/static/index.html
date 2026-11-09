@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EKA · Trợ lý tài liệu</title>
+  <link rel="stylesheet" href="/eka.css">
+  <script src="/eka.js" defer></script>
+</head>
+<body>
+<main>
+  <header><p class="eyebrow">Enterprise Knowledge Assistant</p><h1>Trợ lý tài liệu</h1></header>
+  <p id="notice" role="status"></p>
+  <section id="login-panel">
+    <h2>Đăng nhập</h2>
+    <form id="login">
+      <label>Tenant <input name="tenantSlug" autocomplete="organization" required></label>
+      <label>Email <input name="email" type="email" autocomplete="username" required></label>
+      <label>Mật khẩu <input name="password" type="password" autocomplete="current-password" required></label>
+      <button>Đăng nhập</button>
+    </form>
+  </section>
+  <div id="workspace" hidden>
+    <div class="toolbar"><strong id="tenant"></strong><button id="logout" class="secondary">Đăng xuất</button></div>
+    <div class="grid">
+      <section>
+        <div class="toolbar"><h2>Tài liệu</h2><button id="reload" class="secondary">Làm mới</button></div>
+        <form id="upload">
+          <label>PDF, DOCX, TXT hoặc MD <input name="file" type="file" accept=".pdf,.docx,.txt,.md" required></label>
+          <button>Tải lên</button>
+        </form>
+        <ul id="documents"></ul>
+      </section>
+      <section>
+        <h2>Hỏi tài liệu</h2>
+        <form id="chat">
+          <label>Câu hỏi <textarea name="question" maxlength="2000" rows="4" required></textarea></label>
+          <label class="check"><input name="save" type="checkbox"> Lưu lượt hỏi trong hội thoại</label>
+          <div class="toolbar"><button>Gửi</button><button id="cancel" type="button" class="secondary" disabled>Dừng stream</button></div>
+        </form>
+        <p id="answer" aria-live="polite"></p>
+        <ul id="citations"></ul>
+        <div class="toolbar"><button id="new-conversation" class="secondary">Hội thoại mới</button></div>
+        <ol id="history"></ol>
+      </section>
+    </div>
+  </div>
+</main>
+</body>
+</html>

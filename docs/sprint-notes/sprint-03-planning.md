@@ -124,3 +124,10 @@ writes use the synchronous endpoint. Existing SSE remains stateless.
     & .\scripts\verify-document-scan.ps1 -LogPath target/sprint-03-conversations-verify.log
 
 Developer verification passed 205 tests on 2026-11-08 at 21:24:52 +07:00, including Flyway V10, authenticated conversation turns, stale revision rejection and response redaction after source deletion.
+
+## EKA-18 and Sprint 3 demo checkpoint
+
+PR #68 merged conversation persistence at ca3bbb5. Chat applies a configurable
+cosine similarity floor before generation. The same-origin UI supports login,
+upload, status, streaming, citations and an optional saved conversation.
+See [local demo and synthetic corpus](../sprint-03-demo.md). Developer verification passed all 206 tests on 2026-11-08 at 21:51:16 +07:00. CI and merge are pending.

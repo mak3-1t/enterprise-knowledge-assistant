@@ -4,7 +4,7 @@
 
 Multi-tenant RAG platform for enterprise documents, built with Java 21, Spring Boot and Spring AI.
 
-> Status: Auth and account tenant isolation delivered. Original Sprint 1 scope remains incomplete; upload and other gaps are tracked in the roadmap.
+> Status: Sprint 2 ingestion is released as v0.2.0. Sprint 3 adds RAG chat and a local browser demo.
 
 ## What it does
 Employees ask questions in natural language. The system answers with source citations,
@@ -47,3 +47,5 @@ Apache License 2.0
 - [Document Outbox to Kafka](docs/document-outbox-kafka.md) (Sprint 2 relay; verification status in the document).
 
 - [Durable Tika text parsing](docs/document-text-parser.md) (verification status and remaining scope in the document).
+
+- [Run the Sprint 3 web demo locally](docs/sprint-03-demo.md).

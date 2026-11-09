@@ -130,6 +130,8 @@ class ParserApplicationTests {
 
     @Test
     void uploadThroughReadyAndDownloadRemainTenantScoped() throws Exception {
+        assertThat(request("GET", "/", null, null, null).body()).contains("/eka.js", "/eka.css");
+        assertThat(request("GET", "/eka.js", null, null, null).statusCode()).isEqualTo(200);
         objects.createBucket(request -> request.bucket(BUCKET));
         String owner = account("sprint-two-a");
         String foreign = account("sprint-two-b");
@@ -221,6 +223,10 @@ class ParserApplicationTests {
         assertThat(emptyStream.body())
                 .contains("event:done", "NO_EVIDENCE")
                 .doesNotContain("event:delta");
+        var unrelated =
+                request("POST", "/api/chat", owner, null, Map.of("question", "off-topic fixture"));
+        assertThat(unrelated.statusCode()).isEqualTo(200);
+        assertThat(json.readTree(unrelated.body()).get("status").asText()).isEqualTo("NO_EVIDENCE");
         assertThat(CHAT_REQUESTS.get()).isEqualTo(2);
         assertThat(parses.loadCurrent(UUID.randomUUID(), UUID.fromString(id))).isEmpty();
 
@@ -321,8 +327,11 @@ class ParserApplicationTests {
                             return;
                         }
                         byte[] payload =
-                                ("{\"model\":\"fixture\",\"embeddings\":[[1"
-                                                + ",0".repeat(1023)
+                                ("{\"model\":\"fixture\",\"embeddings\":[["
+                                                + (REQUEST_BODY.get().contains("off-topic fixture")
+                                                        ? "0,1"
+                                                        : "1,0")
+                                                + ",0".repeat(1022)
                                                 + "]]}")
                                         .getBytes(StandardCharsets.UTF_8);
                         exchange.getResponseHeaders().set("Content-Type", "application/json");

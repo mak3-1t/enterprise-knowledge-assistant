@@ -95,7 +95,11 @@ class RagConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
-    RagService ragService(SemanticDocumentSearch search, LlmProvider model, ObjectMapper json) {
-        return new RagService(search, model, json);
+    RagService ragService(
+            SemanticDocumentSearch search,
+            LlmProvider model,
+            ObjectMapper json,
+            @Value("${eka.chat.min-similarity:0.45}") double minSimilarity) {
+        return new RagService(search, model, json, minSimilarity);
     }
 }

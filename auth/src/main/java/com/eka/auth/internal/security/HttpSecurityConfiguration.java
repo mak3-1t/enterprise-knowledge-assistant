@@ -34,6 +34,10 @@ public class HttpSecurityConfiguration {
                                         .permitAll()
                                         .requestMatchers(
                                                 HttpMethod.GET,
+                                                "/",
+                                                "/index.html",
+                                                "/eka.css",
+                                                "/eka.js",
                                                 "/actuator/health",
                                                 "/actuator/health/liveness",
                                                 "/actuator/health/readiness")
