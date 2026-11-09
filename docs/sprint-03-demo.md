@@ -56,3 +56,18 @@ tenant-scoped answers, SSE, citations, saved turns and an off-topic vector.
 ```powershell
 & .\scripts\verify-document-scan.ps1 -LogPath target/sprint-03-acceptance-verify.log
 ```
+
+## Browser verification
+
+On 2026-11-09, Alpha and Beta both uploaded their fixtures to local MinIO and
+reached READY. With local Ollama, the same remote-work question returned two days
+for Alpha and three days for Beta, each citing its own fixture. The Alpha lunch
+allowance question displayed the no-evidence message without citations after the
+decline fix. Multiple independent uploads of the same Beta file appeared as
+separate sources, in line with the upload policy.
+
+For a browser upload failure, confirm the private bucket exists before retrying.
+The signed POST uses no-cors with the browser's default redirect behavior, and the
+completion API verifies the object before acknowledging the upload. The chat
+prompt asks the provider to return NO_EVIDENCE when its sources cannot answer.
+The server treats that response as a decline even if a citation marker follows it.
