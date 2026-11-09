@@ -14,3 +14,4 @@
 | [0010](0010-document-content-scan.md) | Durable content and malware scan | Locally verified; merge pending |
 | [0011](0011-document-outbox-kafka.md) | At-least-once Outbox relay to Kafka | Locally verified; CI/merge pending |
 | [0012](0012-durable-text-parsing.md) | Durable inbox and parsed source generations | Implementation pending integration verification/merge |
+| [0013](0013-chat-provider.md) | Isolate chat generation behind LlmProvider | Accepted for Sprint 3 |
