@@ -31,7 +31,8 @@ class RagServiceTest {
                                     .isEqualTo("Hai ngày mỗi tuần.");
                             return "Hai ngày mỗi tuần. [S1]";
                         },
-                        JSON);
+                        JSON,
+                        0.45);
         var answer = service.answer(" Chính sách là gì? ");
         assertThat(answer.status()).isEqualTo("ANSWERED");
         assertThat(answer.answer()).isEqualTo("Hai ngày mỗi tuần. [S1]");
@@ -48,7 +49,8 @@ class RagServiceTest {
                         (instructions, input) -> {
                             throw new AssertionError("Model should not be called");
                         },
-                        JSON);
+                        JSON,
+                        0.45);
         assertThat(service.answer("unknown"))
                 .isEqualTo(new RagService.Answer("NO_EVIDENCE", null, List.of()));
         assertThatThrownBy(() -> service.answer(" ")).hasMessage("INVALID_QUESTION");
@@ -63,7 +65,8 @@ class RagServiceTest {
                         (instructions, input) -> {
                             throw new IllegalStateException("private provider detail");
                         },
-                        JSON);
+                        JSON,
+                        0.45);
         assertThatThrownBy(() -> service.answer("question"))
                 .isInstanceOf(ChatUnavailable.class)
                 .hasMessage("CHAT_UNAVAILABLE")
@@ -91,7 +94,7 @@ class RagServiceTest {
                     }
                 };
         var source = match("source");
-        var service = new RagService((question, limit) -> List.of(source), provider, JSON);
+        var service = new RagService((question, limit) -> List.of(source), provider, JSON, 0.45);
         assertThat(service.stream("question").collectList().block(java.time.Duration.ofSeconds(2)))
                 .containsExactly(
                         new RagService.StreamEvent("delta", "hello [S"),
@@ -133,7 +136,8 @@ class RagServiceTest {
                                         new IllegalStateException("private detail")));
                     }
                 };
-        var service = new RagService((question, limit) -> List.of(match("source")), provider, JSON);
+        var service =
+                new RagService((question, limit) -> List.of(match("source")), provider, JSON, 0.45);
         assertThat(service.stream("question").collectList().block(java.time.Duration.ofSeconds(2)))
                 .containsExactly(
                         new RagService.StreamEvent("delta", "partial"),
@@ -148,7 +152,8 @@ class RagServiceTest {
                 new RagService(
                         (question, limit) -> List.of(first, second),
                         (instructions, input) -> questionAnswer(input),
-                        JSON);
+                        JSON,
+                        0.45);
         var answer = service.answer("dedupe");
         assertThat(answer.citations())
                 .containsExactly(
@@ -166,6 +171,23 @@ class RagServiceTest {
             return "Unsupported answer.";
         }
         return "Supported [S2]. Repeated [S2].";
+    }
+
+    @Test
+    void skipsGenerationWhenRetrievedEvidenceIsBelowTheThreshold() {
+        var distant =
+                new Match(UUID.randomUUID(), "off-topic.txt", 1, 0, 0, null, 0, 6, "source", 0.8);
+        var service =
+                new RagService(
+                        (question, limit) -> List.of(distant),
+                        (instructions, input) -> {
+                            throw new AssertionError("No supported answer");
+                        },
+                        JSON,
+                        0.45);
+        assertThat(service.answer("unknown").status()).isEqualTo("NO_EVIDENCE");
+        assertThat(service.stream("unknown").collectList().block(java.time.Duration.ofSeconds(2)))
+                .containsExactly(new RagService.StreamEvent("done", "NO_EVIDENCE"));
     }
 
     private static Match match(String text) {

@@ -27,8 +27,17 @@ final class RagService {
     private final SemanticDocumentSearch search;
     private final LlmProvider model;
     private final ObjectMapper json;
+    private final double minSimilarity;
 
-    RagService(SemanticDocumentSearch search, LlmProvider model, ObjectMapper json) {
+    RagService(
+            SemanticDocumentSearch search,
+            LlmProvider model,
+            ObjectMapper json,
+            double minSimilarity) {
+        if (!Double.isFinite(minSimilarity) || minSimilarity < 0 || minSimilarity > 1) {
+            throw new IllegalArgumentException("Invalid chat similarity threshold");
+        }
+        this.minSimilarity = minSimilarity;
         this.search = search;
         this.model = model;
         this.json = json;
@@ -122,7 +131,9 @@ final class RagService {
             int remaining = MAX_CONTEXT;
             for (Match match : search.search(normalized, 5)) {
                 String text = match.text();
-                if (text.isBlank()) {
+                if (text.isBlank()
+                        || !Double.isFinite(match.distance())
+                        || match.distance() > 1 - minSimilarity) {
                     continue;
                 }
                 if (text.length() > remaining) {
