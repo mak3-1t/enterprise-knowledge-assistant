@@ -131,3 +131,14 @@ PR #68 merged conversation persistence at ca3bbb5. Chat applies a configurable
 cosine similarity floor before generation. The same-origin UI supports login,
 upload, status, streaming, citations and an optional saved conversation.
 See [local demo and synthetic corpus](../sprint-03-demo.md). Developer verification passed all 206 tests on 2026-11-08 at 21:51:16 +07:00. CI and merge are pending.
+
+## Sprint 3 closeout evidence
+
+EKA-13 through EKA-18 merged through PRs #60, #62, #64, #66, #68 and #70. The
+browser fixes and local evidence merged through PR #72 at 65259ce. See the
+[local browser results](../sprint-03-demo.md) and [provider ADR](../adr/0013-chat-provider.md).
+
+The manual Ollama demo verified Alpha and Beta answers with their own source and an
+unsupported Alpha question without citations. Automated checks covered ordered SSE,
+subscription cancellation and persisted turns. Browser cancellation and saved-turn
+interaction were not recorded as separate manual results.
