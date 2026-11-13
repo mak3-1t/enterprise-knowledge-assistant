@@ -2,10 +2,14 @@ package com.eka.ingestion.internal.embedding;
 
 import com.eka.auth.api.CurrentAccount;
 import com.eka.ingestion.api.DocumentRetrieval;
+import com.eka.ingestion.api.HybridDocumentSearch;
 import com.eka.ingestion.api.SemanticDocumentSearch;
 import com.eka.ingestion.internal.chunking.DocumentChunkService;
+import com.eka.ingestion.internal.retrieval.LexicalSectionSearch;
+import com.eka.ingestion.internal.retrieval.RrfDocumentSearch;
 import java.time.Duration;
 import org.springframework.ai.ollama.api.OllamaApi;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -58,6 +62,16 @@ class EmbeddingConfiguration {
                     settings.modelVersion(),
                     limit);
         };
+    }
+
+    @Bean
+    HybridDocumentSearch hybridDocumentSearch(
+            SemanticDocumentSearch semantic,
+            LexicalSectionSearch lexical,
+            EmbeddingSettings settings,
+            @Value("${eka.ingestion.retrieval.hybrid-enabled:true}") boolean enabled) {
+        return new RrfDocumentSearch(
+                semantic, lexical, settings.model(), settings.modelVersion(), enabled);
     }
 
     @Bean

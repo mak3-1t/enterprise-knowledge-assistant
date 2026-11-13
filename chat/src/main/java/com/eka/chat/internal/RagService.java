@@ -1,7 +1,7 @@
 package com.eka.chat.internal;
 
 import com.eka.ingestion.api.DocumentRetrieval.Match;
-import com.eka.ingestion.api.SemanticDocumentSearch;
+import com.eka.ingestion.api.HybridDocumentSearch;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -24,13 +24,13 @@ final class RagService {
     private static final Pattern REFERENCE = Pattern.compile("\\[(S[^\\]\\r\\n]*)\\]");
     private static final int MAX_CONTEXT = 12000;
     private static final int MAX_ANSWER = 8192;
-    private final SemanticDocumentSearch search;
+    private final HybridDocumentSearch search;
     private final LlmProvider model;
     private final ObjectMapper json;
     private final double minSimilarity;
 
     RagService(
-            SemanticDocumentSearch search,
+            HybridDocumentSearch search,
             LlmProvider model,
             ObjectMapper json,
             double minSimilarity) {
@@ -142,8 +142,9 @@ final class RagService {
             for (Match match : search.search(normalized, 5)) {
                 String text = match.text();
                 if (text.isBlank()
-                        || !Double.isFinite(match.distance())
-                        || match.distance() > 1 - minSimilarity) {
+                        || (!match.lexicalMatch()
+                                && (!Double.isFinite(match.distance())
+                                        || match.distance() > 1 - minSimilarity))) {
                     continue;
                 }
                 if (text.length() > remaining) {

@@ -1,6 +1,6 @@
 # EKA delivery roadmap and reconciliation
 
-Updated: 2026-11-06. Source: original roadmap supplied by the developer and the
+Updated: 2026-11-13. Source: original roadmap supplied by the developer and the
 Claude handover EKA-handover.md, reconciled with local source and public GitHub API.
 The handover's older unknowns do not override later merged implementation evidence.
 EKA-n below are original planning IDs, not GitHub issue numbers.
@@ -12,16 +12,17 @@ Dates/capacity remain planning assumptions, not a revised delivery commitment.
 
 | Sprint | Epic | Original scope | Verified implementation |
 |---|---|---|---|
-| 0 | E1 | Monorepo, Compose, CI, ADR, framework spike | Foundation merged; later DoD gaps listed below |
-| 1 | E1 | Auth, multi-tenant, document upload | Auth/account isolation implemented; original scope incomplete |
-| 2 | E2 | Outbox/Kafka, parse, chunk, embed, retry/DLT, ingestion status | Not implemented |
-| 3 | E3 | RAG chat, SSE, citations, conversation, no-answer | Not implemented |
-| 4 | E4/E5 | Hybrid RRF, reranking, ACL, bounded agent/tools | Not implemented |
-| 5 | E6/E7 | Resilience/fallback, guardrails, Redis cache/rate limit, evaluation | Not implemented |
-| 6 | E8 | Performance, observability, K8s, final documentation | Not implemented |
+| 0 | E1 | Monorepo, Compose, CI, ADR, framework spike | Foundation and framework decision delivered; remaining DoD gaps listed below |
+| 1 | E1 | Auth, multi-tenant, document upload | Delivered across auth and document lifecycle stories; see merged release history |
+| 2 | E2 | Outbox/Kafka, parse, chunk, embed, retry/DLT, ingestion status | Delivered and released as v0.2.0; Sprint 2 acceptance recorded in sprint notes |
+| 3 | E3 | RAG chat, SSE, citations, conversation, no-answer | Delivered and released as v0.3.0; two-tenant browser acceptance recorded in sprint-03-demo.md |
+| 4 | E4/E5 | Hybrid RRF, reranking, ACL, bounded agent/tools | In progress; EKA-19 verified, EKA-20 RRF implemented with integration evaluation pending, EKA-21..23 remain |
+| 5 | E6/E7 | Resilience/fallback, guardrails, Redis cache/rate limit, evaluation | Not started |
+| 6 | E8 | Performance, observability, K8s, final documentation | Not started |
 
-Frontend is a minimal Sprint 3 deliverable; technology is undecided. No new deadline
-or reduced MVP is implied by the developer's hypothetical five-day question.
+Frontend is a minimal same-origin UI served by the Spring Boot app. No separate
+frontend framework or new deadline is implied by the developer's hypothetical
+five-day question.
 
 ## Sprint 1 original stories vs actual code
 
@@ -30,9 +31,9 @@ or reduced MVP is implied by the developer's hypothetical five-day question.
 | EKA-1 (3 pts) | Register tenant and first ADMIN | PR #35 / issue #34: opt-in registration creates tenant + ADMIN atomically |
 | EKA-2 (5 pts) | Login, access/refresh tokens | PR #27/#37: BCrypt, access JWT and seven-day rotating refresh sessions with immediate logout |
 | EKA-3 (5 pts) | ADMIN/EDITOR/VIEWER RBAC | PR #33 / issue #32: ADMIN/EDITOR/VIEWER and MEMBER -> VIEWER migration |
-| EKA-4 (5 pts) | Tenant isolation, RLS or filter | PR #25/#29 implement tenant-scoped JDBC/account HTTP tests; document isolation still unproved |
-| EKA-5 (5 pts) | Upload to object storage and list; limits; DB metadata | No implementation; remains Sprint 1 work |
-| EKA-6 (2 pts) | Swagger/OpenAPI and health | Health implemented; OpenAPI/Swagger absent |
+| EKA-4 (5 pts) | Tenant isolation, RLS or filter | Auth/account and document routes use tenant-scoped data access; Sprint 3 cross-tenant browser acceptance is recorded in `sprint-03-demo.md` |
+| EKA-5 (5 pts) | Upload to object storage and list; limits; DB metadata | Delivered across document metadata, private object storage, upload lifecycle and ingestion stories; released by v0.2.0 |
+| EKA-6 (2 pts) | Swagger/OpenAPI and health | Health implemented; OpenAPI/Swagger remains an explicit documentation/API discoverability gap |
 
 Total original Sprint 1: 25 points. This is not a remaining-work estimate or measured
 velocity. The narrower S1-01..04 auth plan is historical; it did not replace the
@@ -61,11 +62,11 @@ substitute for registration/upload/three-role RBAC.
 ## Remaining product decisions
 
 Upload policy approved 2026-11-06: PDF/DOCX/TXT/MD, one file/request, <=20 MiB;
-each repeat creates a separate document. Before remaining implementation: download
-transport, bucket/key layout and deletion semantics. Candidate formats from planned
-Tika parsing are PDF/DOCX/TXT/MD, not a confirmed Sprint 1 allowlist. Prior PDF/TXT,
-10 MiB, ADMIN-only upload and expanded deletion-recovery proposal were not approved
-baseline and are superseded by this reconciliation. Do not implement them as facts.
+each repeat creates a separate document. The document flow, private storage, scan,
+parse, chunk, embedding and recovery paths have since been implemented and accepted
+through Sprint 2. Keep subsequent authorization and retention behavior aligned with
+the documented tenant policy. Earlier proposals for PDF/TXT only, 10 MiB, ADMIN-only
+upload and expanded deletion recovery were not approved baseline.
 
 Registration trust limits and refresh rotation/revocation are documented in
 [tenant-registration.md](tenant-registration.md) and [refresh-sessions.md](refresh-sessions.md). Do not add a public provisioning endpoint by exposing
@@ -108,19 +109,16 @@ Final acceptance also requires chunk-size comparison, before/after reranking
 quality evaluation, before/after p95/throughput benchmark, tested provider fallback,
 one-command full Compose startup and documented architecture/demo evidence.
 
-## Delivery order — remaining Sprint 1
+## Current delivery order
 
-1. Auth prerequisites delivered: roles #32/PR #33, signup #34/PR #35 and refresh
-   #36/PR #37. Latest confirmed main is 78d963f with green CI; original snapshots
-   above retain their audit dates. Full original Sprint 1 remains incomplete.
-2. Review/verify/merge the document metadata foundation (V4), then private S3 adapter
-   with bounded I/O, compensation/recovery and real integration tests.
-3. Implement authorized upload/list service/API with the approved limits, format
-   validation and tenant/role checks; define any download/delete extension explicitly.
-4. Add OpenAPI and remaining original DoD gates, run complete document acceptance,
-   then tag v0.1.0 only after the original Sprint 1 deliverable is satisfied.
-5. Sprint 2: Outbox -> parse -> chunk -> embed, with idempotency/retry/DLT/status and
-   measured chunk-size comparison, per the restored original roadmap.
+Sprint 1–3 implementation has advanced beyond the earlier audit snapshots above.
+Those historical details explain the initial reconciliation, not current open work.
+Sprint 4's active sequence and acceptance criteria are maintained in
+[Sprint 4 planning](sprint-notes/sprint-04-planning.md). The remaining cross-sprint
+gaps are OpenAPI, enforced coverage threshold, vulnerability scanning, measured
+retrieval/reranking quality, latency benchmarks, provider fallback, and production
+deployment work; track them in their roadmap sprint rather than treating them as
+completed because earlier stories passed.
 
 Planning IDs are not GitHub issue numbers. Create actual issues, map their IDs, use
 one issue/branch/PR per story and complete Closes references before merging.
@@ -137,3 +135,11 @@ claiming Kafka, parse/chunk/embed, full OS sandbox or READY publication is deliv
 The full upload/content-scan verification passed 142 tests (zero failures/errors/skips),
 including live ClamAV, PostgreSQL/S3 and HTTP suites. BUILD SUCCESS at 16:40:25 +07:00.
 See [verification evidence](document-scan.md). Merge/CI and the remaining parse/chunk/embed/READY/isolation scope are pending.
+
+## Current roadmap checkpoint — 2026-11-13
+
+Sprint 3 is closed at release v0.3.0. Sprint 4 planning and delivery order are in
+[Sprint 4 planning](sprint-notes/sprint-04-planning.md). EKA-19's tenant-scoped
+PostgreSQL lexical search passed its integration suite. EKA-20 now wires RRF into chat
+and includes a labeled comparison test; that expanded PostgreSQL test still needs to
+run. Do not claim corpus-wide quality gains from the single synthetic regression case.

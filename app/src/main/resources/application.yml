@@ -27,6 +27,8 @@ management:
 
 eka:
   ingestion:
+    retrieval:
+      hybrid-enabled: ${EKA_HYBRID_SEARCH_ENABLED:true}
     parser:
       enabled: ${EKA_DOCUMENT_PARSER_ENABLED:false}
       group-id: ${EKA_DOCUMENT_PARSER_GROUP:eka-document-parser-v1}

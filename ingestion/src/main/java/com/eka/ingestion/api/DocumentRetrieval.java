@@ -17,7 +17,33 @@ public interface DocumentRetrieval {
             int startOffset,
             int endOffset,
             String text,
-            double distance) {
+            double distance,
+            boolean lexicalMatch) {
+        public Match(
+                UUID documentId,
+                String filename,
+                long sourceGeneration,
+                int chunkOrdinal,
+                int sectionOrdinal,
+                Integer page,
+                int startOffset,
+                int endOffset,
+                String text,
+                double distance) {
+            this(
+                    documentId,
+                    filename,
+                    sourceGeneration,
+                    chunkOrdinal,
+                    sectionOrdinal,
+                    page,
+                    startOffset,
+                    endOffset,
+                    text,
+                    distance,
+                    false);
+        }
+
         @Override
         public String toString() {
             return "Match[documentId=" + documentId + ", chunkOrdinal=" + chunkOrdinal + "]";
