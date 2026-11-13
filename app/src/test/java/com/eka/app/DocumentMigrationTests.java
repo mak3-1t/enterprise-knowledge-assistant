@@ -22,7 +22,7 @@ class DocumentMigrationTests {
                             .asCompatibleSubstituteFor("postgres"));
 
     @Test
-    void v3ToV10PreservesAuthAndExistingV4DocumentMetadata() {
+    void v3ToV11PreservesAuthAndExistingV4DocumentMetadata() {
         var source =
                 new DriverManagerDataSource(
                         POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
@@ -73,8 +73,8 @@ class DocumentMigrationTests {
                 .update();
         var documentBefore = jdbc.sql("SELECT * FROM ingestion.documents").query().singleRow();
         var latest = Flyway.configure().dataSource(source).cleanDisabled(true).load();
-        assertThat(latest.migrate().migrationsExecuted).isEqualTo(6);
-        assertThat(latest.info().current().getVersion().getVersion()).isEqualTo("10");
+        assertThat(latest.migrate().migrationsExecuted).isEqualTo(7);
+        assertThat(latest.info().current().getVersion().getVersion()).isEqualTo("11");
         assertThat(jdbc.sql("SELECT * FROM auth.accounts").query().singleRow())
                 .isEqualTo(accountBefore);
         assertThat(jdbc.sql("SELECT * FROM auth.sessions").query().singleRow())

@@ -11,7 +11,9 @@ import com.eka.ingestion.internal.parsing.ParseDatabase;
 import com.eka.ingestion.internal.parsing.ParseJobRepository;
 import com.eka.ingestion.internal.persistence.UploadRepository;
 import com.eka.ingestion.internal.persistence.UploadStatus;
+import com.eka.ingestion.internal.retrieval.LexicalSectionSearch;
 import com.eka.ingestion.internal.retrieval.PgvectorDocumentRetrieval;
+import com.eka.ingestion.internal.retrieval.RrfDocumentSearch;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
@@ -201,6 +203,82 @@ class EmbeddingPersistenceTest {
         assertThat(retrieval.search(vector(), "fixture", "v1", 10)).isEmpty();
     }
 
+    @Test
+    void lexicalSearchFindsOnlyReadySectionsForTheAuthenticatedTenant() {
+        UUID own = db.parsed(tenant, user, "Chính sách làm việc từ xa");
+        var search =
+                new LexicalSectionSearch(
+                        () -> new AuthenticatedAccount(user, tenant, "VIEWER"), jdbc());
+        assertThat(search.search("làm việc", 10)).isEmpty();
+        var worker = worker(input -> List.of(vector()));
+        worker.poll();
+        UUID otherTenant = UUID.randomUUID();
+        UUID otherUser = UUID.randomUUID();
+        UUID foreign = db.parsed(otherTenant, otherUser, "Chính sách làm việc từ xa");
+        worker.poll();
+        assertThat(search.search("LÀM VIỆC", 10))
+                .extracting(LexicalSectionSearch.Candidate::documentId)
+                .containsExactly(own);
+        assertThat(search.searchChunks("làm việc", "fixture", "v1", 10))
+                .extracting(DocumentRetrieval.Match::documentId)
+                .containsExactly(own);
+        assertThat(search.searchChunks("làm việc", "fixture", "v1", 10).getFirst())
+                .satisfies(
+                        match -> {
+                            assertThat(match.text()).contains("làm việc");
+                            assertThat(match.lexicalMatch()).isTrue();
+                        });
+        var other =
+                new LexicalSectionSearch(
+                        () -> new AuthenticatedAccount(otherUser, otherTenant, "ADMIN"), jdbc());
+        assertThat(other.search("làm việc", 1))
+                .extracting(LexicalSectionSearch.Candidate::documentId)
+                .containsExactly(foreign);
+        assertThat(other.searchChunks("làm việc", "fixture", "v1", 10))
+                .extracting(DocumentRetrieval.Match::documentId)
+                .containsExactly(foreign);
+        assertThat(search.search("trợ cấp", 10)).isEmpty();
+        uploads().delete(tenant, user, false, own);
+        assertThat(search.search("làm việc", 10)).isEmpty();
+        assertThat(search.searchChunks("làm việc", "fixture", "v1", 10)).isEmpty();
+    }
+
+    @Test
+    void hybridSearchImprovesTheLabeledExactTermCaseOverVectorOnly() {
+        UUID irrelevant = db.parsed(tenant, user, "The cafeteria subsidy is reviewed weekly.");
+        UUID relevant =
+                db.parsed(tenant, user, "Remote work is permitted up to two days each week.");
+        var worker = worker(input -> List.of(vector()));
+        worker.poll();
+        worker.poll();
+        storeVector(irrelevant, vector(1.0f, 0.0f));
+        storeVector(relevant, vector(0.8f, 0.6f));
+
+        var retrieval =
+                new PgvectorDocumentRetrieval(
+                        () -> new AuthenticatedAccount(user, tenant, "VIEWER"), jdbc());
+        var vectorOnly = retrieval.search(vector(1.0f, 0.0f), "fixture", "v1", 10);
+        var lexical =
+                new LexicalSectionSearch(
+                        () -> new AuthenticatedAccount(user, tenant, "VIEWER"), jdbc());
+        var hybrid =
+                new RrfDocumentSearch(
+                        (question, limit) ->
+                                retrieval.search(vector(1.0f, 0.0f), "fixture", "v1", limit),
+                        lexical,
+                        "fixture",
+                        "v1",
+                        true);
+        var fused = hybrid.search("remote work days", 5);
+
+        assertThat(vectorOnly)
+                .extracting(DocumentRetrieval.Match::documentId)
+                .containsExactly(irrelevant, relevant);
+        assertThat(fused.getFirst().documentId()).isEqualTo(relevant);
+        assertThat(reciprocalRank(vectorOnly, relevant)).isEqualTo(0.5);
+        assertThat(reciprocalRank(fused, relevant)).isEqualTo(1.0);
+    }
+
     private EmbeddingWorker worker(EmbeddingProvider provider) {
         return new EmbeddingWorker(
                 db.bean(EmbeddingJobRepository.class),
@@ -236,6 +314,25 @@ class EmbeddingPersistenceTest {
                 .single();
     }
 
+    private void storeVector(UUID doc, float[] value) {
+        jdbc().sql(
+                        "UPDATE ingestion.document_chunk_embeddings SET embedding = CAST(? AS vector) "
+                                + "WHERE tenant_id = ? AND document_id = ?")
+                .param(vectorLiteral(value))
+                .param(tenant)
+                .param(doc)
+                .update();
+    }
+
+    private static double reciprocalRank(List<DocumentRetrieval.Match> matches, UUID relevant) {
+        for (int index = 0; index < matches.size(); index++) {
+            if (matches.get(index).documentId().equals(relevant)) {
+                return 1.0 / (index + 1);
+            }
+        }
+        return 0.0;
+    }
+
     private String jobState(UUID doc) {
         return jdbc().sql(
                         "SELECT state FROM ingestion.document_embedding_jobs WHERE tenant_id = ? AND document_id = ?")
@@ -249,5 +346,23 @@ class EmbeddingPersistenceTest {
         var vector = new float[EmbeddingBatch.DIMENSIONS];
         vector[0] = 1;
         return vector;
+    }
+
+    private static float[] vector(float first, float second) {
+        var vector = new float[EmbeddingBatch.DIMENSIONS];
+        vector[0] = first;
+        vector[1] = second;
+        return vector;
+    }
+
+    private static String vectorLiteral(float[] vector) {
+        var literal = new StringBuilder("[");
+        for (int index = 0; index < vector.length; index++) {
+            if (index > 0) {
+                literal.append(',');
+            }
+            literal.append(vector[index]);
+        }
+        return literal.append(']').toString();
     }
 }

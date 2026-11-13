@@ -4,7 +4,7 @@
 
 Multi-tenant RAG platform for enterprise documents, built with Java 21, Spring Boot and Spring AI.
 
-> Status: Sprint 2 ingestion is released as v0.2.0. Sprint 3 adds RAG chat and a local browser demo.
+> Status: Sprint 2 ingestion is released as v0.2.0. Sprint 3 RAG chat and the local browser demo are released as v0.3.0. Sprint 4 hybrid retrieval is in progress.
 
 ## What it does
 Employees ask questions in natural language. The system answers with source citations,
@@ -49,3 +49,5 @@ Apache License 2.0
 - [Durable Tika text parsing](docs/document-text-parser.md) (verification status and remaining scope in the document).
 
 - [Run the Sprint 3 web demo locally](docs/sprint-03-demo.md).
+- [Sprint 4 plan and backlog](docs/sprint-notes/sprint-04-planning.md).
+- [Tenant-scoped lexical retrieval](docs/lexical-document-search.md).

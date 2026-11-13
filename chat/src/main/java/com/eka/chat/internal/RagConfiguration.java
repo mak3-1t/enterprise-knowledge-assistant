@@ -1,6 +1,6 @@
 package com.eka.chat.internal;
 
-import com.eka.ingestion.api.SemanticDocumentSearch;
+import com.eka.ingestion.api.HybridDocumentSearch;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
@@ -96,7 +96,7 @@ class RagConfiguration implements WebMvcConfigurer {
 
     @Bean
     RagService ragService(
-            SemanticDocumentSearch search,
+            HybridDocumentSearch search,
             LlmProvider model,
             ObjectMapper json,
             @Value("${eka.chat.min-similarity:0.45}") double minSimilarity) {

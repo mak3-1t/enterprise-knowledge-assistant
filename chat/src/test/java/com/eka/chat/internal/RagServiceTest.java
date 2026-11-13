@@ -191,6 +191,21 @@ class RagServiceTest {
     }
 
     @Test
+    void lexicalEvidenceCanSupportAnAnswerWhenVectorSimilarityIsBelowTheFloor() {
+        var lexical =
+                new Match(
+                        UUID.randomUUID(), "policy.txt", 1, 0, 0, null, 0, 6, "policy", 0.99, true);
+        var service =
+                new RagService(
+                        (question, limit) -> List.of(lexical),
+                        (instructions, input) -> "Supported by the exact terms. [S1]",
+                        JSON,
+                        0.45);
+
+        assertThat(service.answer("policy").status()).isEqualTo("ANSWERED");
+    }
+
+    @Test
     void modelDeclineCannotPublishCitations() {
         var provider =
                 new LlmProvider() {
