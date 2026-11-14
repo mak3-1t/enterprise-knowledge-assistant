@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -59,6 +60,16 @@ public class DocumentController {
         return response(200, documents.detail(id));
     }
 
+    @GetMapping("/{id}/access")
+    public ResponseEntity<?> access(@PathVariable UUID id) {
+        return response(200, documents.readableRoles(id));
+    }
+
+    @PutMapping("/{id}/access")
+    public ResponseEntity<?> access(@PathVariable UUID id, @RequestBody AccessRequest request) {
+        return response(200, documents.setReadableRoles(id, request.readableBy()));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable UUID id) {
         documents.delete(id);
@@ -91,14 +102,17 @@ public class DocumentController {
     ResponseEntity<?> conflict(UploadConflict error) {
         int status =
                 Map.ofEntries(
-                                Map.entry("FORBIDDEN", 403), Map.entry("NOT_FOUND", 404),
+                                Map.entry("FORBIDDEN", 403),
+                                Map.entry("NOT_FOUND", 404),
                                 Map.entry("FILE_TOO_LARGE", 413),
-                                        Map.entry("UNSUPPORTED_TYPE", 415),
+                                Map.entry("UNSUPPORTED_TYPE", 415),
                                 Map.entry("IDEMPOTENCY_CONFLICT", 409),
-                                        Map.entry("QUOTA_EXCEEDED", 409),
-                                Map.entry("INVALID_STATE", 409), Map.entry("UPLOAD_EXPIRED", 409),
+                                Map.entry("QUOTA_EXCEEDED", 409),
+                                Map.entry("INVALID_STATE", 409),
+                                Map.entry("UPLOAD_EXPIRED", 409),
                                 Map.entry("RESTORE_UNAVAILABLE", 409),
-                                        Map.entry("DOCUMENT_NOT_READY", 409))
+                                Map.entry("DOCUMENT_NOT_READY", 409),
+                                Map.entry("INVALID_ACCESS_ROLES", 400))
                         .getOrDefault(error.getMessage(), 400);
         return response(status, Map.of("error", error.getMessage()));
     }
@@ -113,4 +127,6 @@ public class DocumentController {
     }
 
     public record InitRequest(String filename, long sizeBytes, String sha256) {}
+
+    public record AccessRequest(java.util.List<String> readableBy) {}
 }

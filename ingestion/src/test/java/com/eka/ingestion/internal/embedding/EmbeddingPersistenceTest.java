@@ -244,6 +244,34 @@ class EmbeddingPersistenceTest {
     }
 
     @Test
+    void roleAclFiltersVectorAndLexicalEvidenceBeforeHybridRanking() {
+        UUID restricted = db.parsed(tenant, user, "Bảo mật dự án nội bộ chỉ dành cho quản lý.");
+        worker(input -> List.of(vector())).poll();
+        uploads().setReaderRoles(tenant, restricted, List.of("VIEWER"));
+
+        var editor = new AuthenticatedAccount(user, tenant, "EDITOR");
+        var viewer = new AuthenticatedAccount(user, tenant, "VIEWER");
+        var admin = new AuthenticatedAccount(user, tenant, "ADMIN");
+        var editorVector = new PgvectorDocumentRetrieval(() -> editor, jdbc());
+        var editorLexical = new LexicalSectionSearch(() -> editor, jdbc());
+        var viewerVector = new PgvectorDocumentRetrieval(() -> viewer, jdbc());
+        var viewerLexical = new LexicalSectionSearch(() -> viewer, jdbc());
+        var adminVector = new PgvectorDocumentRetrieval(() -> admin, jdbc());
+
+        assertThat(editorVector.search(vector(), "fixture", "v1", 10)).isEmpty();
+        assertThat(editorLexical.searchChunks("bảo mật", "fixture", "v1", 10)).isEmpty();
+        assertThat(viewerVector.search(vector(), "fixture", "v1", 10))
+                .extracting(DocumentRetrieval.Match::documentId)
+                .containsExactly(restricted);
+        assertThat(viewerLexical.searchChunks("bảo mật", "fixture", "v1", 10))
+                .extracting(DocumentRetrieval.Match::documentId)
+                .containsExactly(restricted);
+        assertThat(adminVector.search(vector(), "fixture", "v1", 10))
+                .extracting(DocumentRetrieval.Match::documentId)
+                .containsExactly(restricted);
+    }
+
+    @Test
     void hybridSearchImprovesTheLabeledExactTermCaseOverVectorOnly() {
         UUID irrelevant = db.parsed(tenant, user, "The cafeteria subsidy is reviewed weekly.");
         UUID relevant =

@@ -16,7 +16,7 @@ Dates/capacity remain planning assumptions, not a revised delivery commitment.
 | 1 | E1 | Auth, multi-tenant, document upload | Delivered across auth and document lifecycle stories; see merged release history |
 | 2 | E2 | Outbox/Kafka, parse, chunk, embed, retry/DLT, ingestion status | Delivered and released as v0.2.0; Sprint 2 acceptance recorded in sprint notes |
 | 3 | E3 | RAG chat, SSE, citations, conversation, no-answer | Delivered and released as v0.3.0; two-tenant browser acceptance recorded in sprint-03-demo.md |
-| 4 | E4/E5 | Hybrid RRF, reranking, ACL, bounded agent/tools | In progress; EKA-19/20 verified; EKA-21 opt-in TEI reranking implemented, model-on-corpus quality/latency evaluation pending; EKA-22/23 remain |
+| 4 | E4/E5 | Hybrid RRF, reranking, ACL, bounded agent/tools | In progress; EKA-19/20 verified; EKA-21 opt-in TEI reranking implemented, model-on-corpus quality/latency evaluation pending; EKA-22 role ACL implemented; EKA-23 remains |
 | 5 | E6/E7 | Resilience/fallback, guardrails, Redis cache/rate limit, evaluation | Not started |
 | 6 | E8 | Performance, observability, K8s, final documentation | Not started |
 
@@ -144,4 +144,8 @@ PostgreSQL lexical search and EKA-20's labeled RRF regression test passed. EKA-2
 adds opt-in TEI cross-encoder reranking with bounded payloads, response validation,
 timeouts, fallback to RRF, and telemetry. It remains disabled by default until a
 model/version is evaluated on the labeled corpus for relevance and latency. Do not
-claim corpus-wide quality gains from the single synthetic regression case.
+claim corpus-wide quality gains from the single synthetic regression case. EKA-22
+now defaults documents to tenant-wide read access and lets ADMIN restrict individual
+documents to EDITOR and/or VIEWER roles. Role filtering applies to document list,
+detail, download, vector search, and lexical search before RRF/reranking. See
+[document role ACLs](document-acl.md). EKA-23 bounded tools remain next.

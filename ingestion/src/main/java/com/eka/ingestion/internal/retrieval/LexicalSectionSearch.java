@@ -19,7 +19,9 @@ public class LexicalSectionSearch {
     }
 
     public List<Candidate> search(String terms, int limit) {
-        UUID tenant = current.require().tenantId();
+        var account = current.require();
+        UUID tenant = account.tenantId();
+        String role = account.role();
         if (terms == null || terms.isBlank() || terms.length() > 2000 || limit < 1 || limit > 50) {
             throw new IllegalArgumentException("Invalid lexical search options");
         }
@@ -32,12 +34,15 @@ public class LexicalSectionSearch {
                     AND d.source_generation = s.generation
                 CROSS JOIN (SELECT plainto_tsquery('pg_catalog.simple', ?) AS terms) q
                 WHERE s.tenant_id = ? AND d.upload_status = 'READY' AND d.purged_at IS NULL
+                    AND (? = 'ADMIN' OR d.reader_roles @> ARRAY[?]::TEXT[])
                     AND s.lexical_terms @@ q.terms
                 ORDER BY rank DESC, s.document_id, s.ordinal
                 LIMIT ?
                 """)
                 .param(terms)
                 .param(tenant)
+                .param(role)
+                .param(role)
                 .param(limit)
                 .query(
                         (rs, ignored) ->
@@ -51,7 +56,9 @@ public class LexicalSectionSearch {
     }
 
     public List<Match> searchChunks(String terms, String model, String modelVersion, int limit) {
-        UUID tenant = current.require().tenantId();
+        var account = current.require();
+        UUID tenant = account.tenantId();
+        String role = account.role();
         if (terms == null
                 || terms.isBlank()
                 || terms.length() > 2000
@@ -74,6 +81,7 @@ public class LexicalSectionSearch {
                         AND d.id = s.document_id AND d.source_generation = s.generation
                     CROSS JOIN input_query q
                     WHERE s.tenant_id = ? AND d.upload_status = 'READY'
+                        AND (? = 'ADMIN' OR d.reader_roles @> ARRAY[?]::TEXT[])
                         AND d.purged_at IS NULL AND s.lexical_terms @@ q.terms
                 ), scored_chunks AS (
                     SELECT d.id AS document_id, d.filename, e.generation, e.ordinal AS chunk_ordinal,
@@ -110,6 +118,8 @@ public class LexicalSectionSearch {
                 """)
                 .param(terms)
                 .param(tenant)
+                .param(role)
+                .param(role)
                 .param(model)
                 .param(modelVersion)
                 .param(limit)

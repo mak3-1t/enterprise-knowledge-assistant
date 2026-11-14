@@ -29,6 +29,7 @@ All ports are bound to 127.0.0.1. Check health with `docker compose ... ps`.
 - Refresh tokens and logout: [docs/refresh-sessions.md](docs/refresh-sessions.md)
 - Opt-in tenant registration: [docs/tenant-registration.md](docs/tenant-registration.md)
 - Three-role migration: [docs/auth-roles.md](docs/auth-roles.md)
+- Document role ACLs: [docs/document-acl.md](docs/document-acl.md)
 - Original roadmap and delivery gaps: [docs/roadmap.md](docs/roadmap.md)
 - Sprint 1 remaining scope: [completion backlog](docs/sprint-notes/sprint-01-completion.md)
 - Sprint 2 plan and backlog: [planning](docs/sprint-notes/sprint-02-planning.md), [backlog](docs/sprint-notes/sprint-02-backlog.md)

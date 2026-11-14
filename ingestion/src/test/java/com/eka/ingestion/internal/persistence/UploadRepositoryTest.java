@@ -3,6 +3,7 @@ package com.eka.ingestion.internal.persistence;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import javax.sql.DataSource;
@@ -252,6 +253,27 @@ class UploadRepositoryTest {
         uploads.delete(tenant, otherUser, true, row.id());
         assertThat(uploads.find(tenant, row.id()).orElseThrow().status())
                 .isEqualTo(UploadStatus.DELETED);
+    }
+
+    @Test
+    void roleAclDefaultsToTenantSharedAndCanBeRestrictedByAnAdmin() {
+        var row = create("acl-key-01", 10);
+        assertThat(uploads.listVisible(tenant, "EDITOR", 10, 0))
+                .extracting(UploadRecord::id)
+                .containsExactly(row.id());
+        assertThat(uploads.findVisible(tenant, row.id(), "VIEWER")).contains(row);
+
+        assertThat(uploads.setReaderRoles(tenant, row.id(), List.of("VIEWER")))
+                .containsExactly("VIEWER");
+        assertThat(uploads.findVisible(tenant, row.id(), "EDITOR")).isEmpty();
+        assertThat(uploads.listVisible(tenant, "EDITOR", 10, 0)).isEmpty();
+        assertThat(uploads.findVisible(tenant, row.id(), "VIEWER")).contains(row);
+        assertThat(uploads.findVisible(tenant, row.id(), "ADMIN")).contains(row);
+        assertThat(uploads.findVisible(UUID.randomUUID(), row.id(), "ADMIN")).isEmpty();
+
+        assertThat(uploads.setReaderRoles(tenant, row.id(), List.of())).isEmpty();
+        assertThat(uploads.findVisible(tenant, row.id(), "ADMIN")).contains(row);
+        assertThat(uploads.findVisible(tenant, row.id(), "VIEWER")).isEmpty();
     }
 
     private UploadRecord create(String key, long bytes) {

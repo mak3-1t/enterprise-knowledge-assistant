@@ -236,6 +236,57 @@ class DocumentHttpTests {
     }
 
     @Test
+    void adminCanRestrictDocumentReadersAndHiddenDocumentsLookMissing() throws Exception {
+        String token = account("document-acl-http");
+        UUID id = id(init(token, "document-acl-key"));
+        String path = "/api/documents/" + id;
+
+        assertThat(send("GET", path, token, null, null).statusCode()).isEqualTo(200);
+        assertThat(send("GET", "/api/documents/" + id + "/access", token, null, null).body())
+                .contains("EDITOR", "VIEWER");
+
+        var restricted =
+                send(
+                        "PUT",
+                        "/api/documents/" + id + "/access",
+                        token,
+                        null,
+                        Map.of("readableBy", java.util.List.of("VIEWER")));
+        assertThat(restricted.statusCode()).isEqualTo(200);
+        assertThat(restricted.body()).contains("VIEWER").doesNotContain("EDITOR");
+        assertThat(
+                        send(
+                                        "PUT",
+                                        "/api/documents/" + id + "/access",
+                                        token,
+                                        null,
+                                        Map.of("readableBy", java.util.List.of("ADMIN")))
+                                .statusCode())
+                .isEqualTo(400);
+
+        jdbc.sql("UPDATE auth.accounts SET role = 'EDITOR' WHERE email = 'admin@example.test'")
+                .update();
+        // The account token is resolved against persisted account state for each request.
+        assertThat(send("GET", path, token, null, null).statusCode()).isEqualTo(404);
+        assertThat(send("GET", "/api/documents", token, null, null).body())
+                .doesNotContain(id.toString());
+        assertThat(send("GET", path + "/access", token, null, null).statusCode()).isEqualTo(403);
+        assertThat(
+                        send(
+                                        "PUT",
+                                        path + "/access",
+                                        token,
+                                        null,
+                                        Map.of("readableBy", java.util.List.of("VIEWER")))
+                                .statusCode())
+                .isEqualTo(403);
+
+        jdbc.sql("UPDATE auth.accounts SET role = 'VIEWER' WHERE email = 'admin@example.test'")
+                .update();
+        assertThat(send("GET", path, token, null, null).statusCode()).isEqualTo(200);
+    }
+
+    @Test
     void softDeleteRetainsQuotaRestoresAsUploadedAndCannotResurrectCancelledIntent()
             throws Exception {
         String token = account("docs-a");

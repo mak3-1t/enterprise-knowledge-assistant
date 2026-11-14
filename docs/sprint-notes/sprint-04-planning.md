@@ -48,4 +48,6 @@ comparison switch. Its six ranking/search unit tests and nine chat tests passed 
 implemented behind an opt-in TEI reranker adapter, with bounded payloads, validated
 scores, timeout, fallback to RRF, and low-cardinality metrics. Mock-based tests do not
 replace model-on-corpus relevance/latency measurement; keep reranking disabled until
-that measurement is recorded. EKA-22 and EKA-23 remain.
+that measurement is recorded. EKA-22 implements tenant-wide default sharing with
+ADMIN-managed role restrictions, enforced in document reads and retrieval. EKA-23
+remains.

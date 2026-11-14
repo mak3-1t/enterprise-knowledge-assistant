@@ -18,6 +18,7 @@ import com.eka.ingestion.internal.persistence.UploadRepository;
 import com.eka.ingestion.internal.persistence.UploadStatus;
 import com.eka.ingestion.internal.storage.UploadStorage;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -59,14 +60,34 @@ class DocumentUploadServiceTest {
     void callerCannotChooseTenantAndOnlyReadyDocumentsCanDownload() {
         identity("VIEWER");
         var row = row(UploadStatus.UPLOADED);
-        when(uploads.find(tenant, row.id())).thenReturn(Optional.of(row));
+        when(uploads.findVisible(tenant, row.id(), "VIEWER")).thenReturn(Optional.of(row));
         assertThat(service.detail(row.id()).id()).isEqualTo(row.id());
         assertThatThrownBy(() -> service.download(row.id())).hasMessage("DOCUMENT_NOT_READY");
         verify(storage, never()).open(any());
-        when(uploads.find(tenant, row.id())).thenReturn(Optional.of(row(UploadStatus.DELETED)));
+        when(uploads.findVisible(tenant, row.id(), "VIEWER")).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.detail(row.id())).hasMessage("NOT_FOUND");
-        when(uploads.find(tenant, row.id())).thenReturn(Optional.empty());
+        when(uploads.findVisible(tenant, row.id(), "VIEWER")).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.detail(row.id())).hasMessage("NOT_FOUND");
+    }
+
+    @Test
+    void onlyAdminCanSetAValidatedReaderRoleSubset() {
+        UUID id = UUID.randomUUID();
+        identity("EDITOR");
+        assertThatThrownBy(() -> service.setReadableRoles(id, List.of("VIEWER")))
+                .hasMessage("FORBIDDEN");
+        identity("ADMIN");
+        when(uploads.setReaderRoles(tenant, id, List.of("VIEWER"))).thenReturn(List.of("VIEWER"));
+        assertThat(service.setReadableRoles(id, List.of("VIEWER")))
+                .isEqualTo(new DocumentUploadService.AccessView(id, List.of("VIEWER")));
+        assertThatThrownBy(() -> service.setReadableRoles(id, List.of("ADMIN")))
+                .hasMessage("INVALID_ACCESS_ROLES");
+        assertThatThrownBy(() -> service.setReadableRoles(id, List.of("VIEWER", "VIEWER")))
+                .hasMessage("INVALID_ACCESS_ROLES");
+        assertThatThrownBy(
+                        () -> service.setReadableRoles(id, java.util.Arrays.asList((String) null)))
+                .hasMessage("INVALID_ACCESS_ROLES");
+        verify(uploads).setReaderRoles(tenant, id, List.of("VIEWER"));
     }
 
     @Test

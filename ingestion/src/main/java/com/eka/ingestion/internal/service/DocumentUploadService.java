@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 @Service
 @ConditionalOnProperty(name = "eka.upload.enabled", havingValue = "true")
 public class DocumentUploadService {
+    private static final Set<String> READABLE_ROLES = Set.of("EDITOR", "VIEWER");
     private static final Set<String> PUBLIC_ERRORS =
             Set.of(
                     "MALWARE_DETECTED",
@@ -109,13 +110,35 @@ public class DocumentUploadService {
         if (page < 0 || size < 1 || size > 100 || page > Integer.MAX_VALUE / size) {
             throw new UploadConflict("INVALID_PAGE");
         }
-        return uploads.list(account.tenantId(), size, page * size).stream()
+        return uploads.listVisible(account.tenantId(), account.role(), size, page * size).stream()
                 .map(DocumentUploadService::view)
                 .toList();
     }
 
     public View detail(UUID id) {
-        return view(visible(current.require().tenantId(), id));
+        var account = current.require();
+        return view(visible(account, id));
+    }
+
+    public AccessView setReadableRoles(UUID id, List<String> readableBy) {
+        var account = current.require();
+        requireAdmin(account.role());
+        if (readableBy == null
+                || readableBy.size() > 2
+                || readableBy.stream()
+                        .anyMatch(role -> role == null || !READABLE_ROLES.contains(role))
+                || readableBy.stream().distinct().count() != readableBy.size()) {
+            throw new UploadConflict("INVALID_ACCESS_ROLES");
+        }
+        var saved = uploads.setReaderRoles(account.tenantId(), id, readableBy);
+        events.record(UploadEvents.Outcome.ACCESS_UPDATED, id);
+        return new AccessView(id, saved);
+    }
+
+    public AccessView readableRoles(UUID id) {
+        var account = current.require();
+        requireAdmin(account.role());
+        return new AccessView(id, uploads.readerRoles(account.tenantId(), id));
     }
 
     public void delete(UUID id) {
@@ -138,7 +161,7 @@ public class DocumentUploadService {
     }
 
     public Download download(UUID id) {
-        var row = visible(current.require().tenantId(), id);
+        var row = visible(current.require(), id);
         if (row.status() != UploadStatus.READY) {
             throw new UploadConflict("DOCUMENT_NOT_READY");
         }
@@ -154,16 +177,19 @@ public class DocumentUploadService {
         return account;
     }
 
+    private static void requireAdmin(String role) {
+        if (!"ADMIN".equals(role)) {
+            throw new UploadConflict("FORBIDDEN");
+        }
+    }
+
     private UploadRecord require(UUID tenant, UUID id) {
         return uploads.find(tenant, id).orElseThrow(() -> new UploadConflict("NOT_FOUND"));
     }
 
-    private UploadRecord visible(UUID tenant, UUID id) {
-        var row = require(tenant, id);
-        if (row.status() == UploadStatus.DELETED || row.status() == UploadStatus.EXPIRED) {
-            throw new UploadConflict("NOT_FOUND");
-        }
-        return row;
+    private UploadRecord visible(AuthenticatedAccount account, UUID id) {
+        return uploads.findVisible(account.tenantId(), id, account.role())
+                .orElseThrow(() -> new UploadConflict("NOT_FOUND"));
     }
 
     private static View view(UploadRecord row) {
@@ -197,6 +223,9 @@ public class DocumentUploadService {
             String errorCode) {}
 
     public record Intent(View document, UploadStorage.UploadForm upload) {}
+
+    /** ADMIN is always allowed; an empty readableBy list makes the document ADMIN-only. */
+    public record AccessView(UUID id, List<String> readableBy) {}
 
     public record Download(String filename, String mediaType, long bytes, InputStream stream) {}
 }
