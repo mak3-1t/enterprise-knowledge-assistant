@@ -43,6 +43,73 @@ class RrfDocumentSearchTest {
     }
 
     @Test
+    void reranksOnlyTheBoundedFusedCandidates() {
+        var lexical = mock(LexicalSectionSearch.class);
+        var first = match(1, false);
+        var second = match(2, false);
+        SemanticDocumentSearch semantic = (question, limit) -> List.of(first, second);
+        when(lexical.searchChunks("policy", "fixture", "v1", 10)).thenReturn(List.of());
+        var search =
+                new RrfDocumentSearch(
+                        semantic,
+                        lexical,
+                        "fixture",
+                        "v1",
+                        true,
+                        (query, candidates) -> {
+                            assertThat(query).isEqualTo("policy");
+                            assertThat(candidates).containsExactly(first, second);
+                            return List.of(1, 0);
+                        },
+                        true,
+                        null);
+
+        assertThat(search.search("policy", 1)).containsExactly(second);
+    }
+
+    @Test
+    void rerankerFailureFallsBackToTheStableHybridRanking() {
+        var lexical = mock(LexicalSectionSearch.class);
+        var first = match(1, false);
+        var second = match(2, false);
+        when(lexical.searchChunks("policy", "fixture", "v1", 10)).thenReturn(List.of());
+        var search =
+                new RrfDocumentSearch(
+                        (question, limit) -> List.of(first, second),
+                        lexical,
+                        "fixture",
+                        "v1",
+                        true,
+                        (query, candidates) -> {
+                            throw new IllegalStateException("provider unavailable");
+                        },
+                        true,
+                        null);
+
+        assertThat(search.search("policy", 2)).containsExactly(first, second);
+    }
+
+    @Test
+    void invalidRerankerOrderFallsBackWithoutDroppingEvidence() {
+        var lexical = mock(LexicalSectionSearch.class);
+        var first = match(1, false);
+        var second = match(2, false);
+        when(lexical.searchChunks("policy", "fixture", "v1", 10)).thenReturn(List.of());
+        var search =
+                new RrfDocumentSearch(
+                        (question, limit) -> List.of(first, second),
+                        lexical,
+                        "fixture",
+                        "v1",
+                        true,
+                        (query, candidates) -> List.of(1, 1),
+                        true,
+                        null);
+
+        assertThat(search.search("policy", 2)).containsExactly(first, second);
+    }
+
+    @Test
     void boundsQueryAndResultLimit() {
         var search =
                 new RrfDocumentSearch(

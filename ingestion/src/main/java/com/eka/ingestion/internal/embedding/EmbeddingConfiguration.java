@@ -1,14 +1,19 @@
 package com.eka.ingestion.internal.embedding;
 
 import com.eka.auth.api.CurrentAccount;
+import com.eka.ingestion.api.DocumentReranker;
 import com.eka.ingestion.api.DocumentRetrieval;
 import com.eka.ingestion.api.HybridDocumentSearch;
 import com.eka.ingestion.api.SemanticDocumentSearch;
 import com.eka.ingestion.internal.chunking.DocumentChunkService;
 import com.eka.ingestion.internal.retrieval.LexicalSectionSearch;
+import com.eka.ingestion.internal.retrieval.RerankingEvents;
 import com.eka.ingestion.internal.retrieval.RrfDocumentSearch;
+import com.eka.ingestion.internal.retrieval.TeiDocumentReranker;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import org.springframework.ai.ollama.api.OllamaApi;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -69,22 +74,57 @@ class EmbeddingConfiguration {
             SemanticDocumentSearch semantic,
             LexicalSectionSearch lexical,
             EmbeddingSettings settings,
-            @Value("${eka.ingestion.retrieval.hybrid-enabled:true}") boolean enabled) {
+            @Value("${eka.ingestion.retrieval.hybrid-enabled:true}") boolean enabled,
+            @Value("${eka.ingestion.retrieval.reranking-enabled:false}") boolean rerankingEnabled,
+            @Value("${eka.ingestion.retrieval.reranker.endpoint:http://localhost:8081}")
+                    String endpoint,
+            ObjectProvider<MeterRegistry> registries) {
+        var events = new RerankingEvents(registries);
+        DocumentReranker reranker =
+                rerankingEnabled
+                        ? new TeiDocumentReranker(
+                                RestClient.builder()
+                                        .baseUrl(
+                                                TeiDocumentReranker.validateEndpoint(endpoint)
+                                                        .toString())
+                                        .requestFactory(
+                                                requestFactory(
+                                                        Duration.ofSeconds(3),
+                                                        Duration.ofSeconds(15)))
+                                        .build())
+                        : null;
         return new RrfDocumentSearch(
-                semantic, lexical, settings.model(), settings.modelVersion(), enabled);
+                semantic,
+                lexical,
+                settings.model(),
+                settings.modelVersion(),
+                enabled,
+                reranker,
+                rerankingEnabled,
+                events);
     }
 
     @Bean
     EmbeddingBatch documentEmbeddingBatch(EmbeddingSettings settings) {
-        var factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(Duration.ofSeconds(5));
-        factory.setReadTimeout(Duration.ofSeconds(60));
         var api =
                 OllamaApi.builder()
                         .baseUrl(settings.baseUrl().toString())
-                        .restClientBuilder(RestClient.builder().requestFactory(factory))
+                        .restClientBuilder(
+                                RestClient.builder()
+                                        .requestFactory(
+                                                requestFactory(
+                                                        Duration.ofSeconds(5),
+                                                        Duration.ofSeconds(60))))
                         .build();
         return new EmbeddingBatch(
                 new OllamaDocumentEmbeddingProvider(api, settings.model()), settings);
+    }
+
+    private static SimpleClientHttpRequestFactory requestFactory(
+            Duration connectTimeout, Duration readTimeout) {
+        var factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(connectTimeout);
+        factory.setReadTimeout(readTimeout);
+        return factory;
     }
 }

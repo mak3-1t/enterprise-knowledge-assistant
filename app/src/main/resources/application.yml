@@ -29,6 +29,9 @@ eka:
   ingestion:
     retrieval:
       hybrid-enabled: ${EKA_HYBRID_SEARCH_ENABLED:true}
+      reranking-enabled: ${EKA_RERANKING_ENABLED:false}
+      reranker:
+        endpoint: ${EKA_RERANKER_ENDPOINT:http://localhost:8081}
     parser:
       enabled: ${EKA_DOCUMENT_PARSER_ENABLED:false}
       group-id: ${EKA_DOCUMENT_PARSER_GROUP:eka-document-parser-v1}
