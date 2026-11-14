@@ -16,7 +16,7 @@ Dates/capacity remain planning assumptions, not a revised delivery commitment.
 | 1 | E1 | Auth, multi-tenant, document upload | Delivered across auth and document lifecycle stories; see merged release history |
 | 2 | E2 | Outbox/Kafka, parse, chunk, embed, retry/DLT, ingestion status | Delivered and released as v0.2.0; Sprint 2 acceptance recorded in sprint notes |
 | 3 | E3 | RAG chat, SSE, citations, conversation, no-answer | Delivered and released as v0.3.0; two-tenant browser acceptance recorded in sprint-03-demo.md |
-| 4 | E4/E5 | Hybrid RRF, reranking, ACL, bounded agent/tools | In progress; EKA-19 verified, EKA-20 RRF implemented with integration evaluation pending, EKA-21..23 remain |
+| 4 | E4/E5 | Hybrid RRF, reranking, ACL, bounded agent/tools | In progress; EKA-19/20 verified; EKA-21 opt-in TEI reranking implemented, model-on-corpus quality/latency evaluation pending; EKA-22/23 remain |
 | 5 | E6/E7 | Resilience/fallback, guardrails, Redis cache/rate limit, evaluation | Not started |
 | 6 | E8 | Performance, observability, K8s, final documentation | Not started |
 
@@ -140,6 +140,8 @@ See [verification evidence](document-scan.md). Merge/CI and the remaining parse/
 
 Sprint 3 is closed at release v0.3.0. Sprint 4 planning and delivery order are in
 [Sprint 4 planning](sprint-notes/sprint-04-planning.md). EKA-19's tenant-scoped
-PostgreSQL lexical search passed its integration suite. EKA-20 now wires RRF into chat
-and includes a labeled comparison test; that expanded PostgreSQL test still needs to
-run. Do not claim corpus-wide quality gains from the single synthetic regression case.
+PostgreSQL lexical search and EKA-20's labeled RRF regression test passed. EKA-21
+adds opt-in TEI cross-encoder reranking with bounded payloads, response validation,
+timeouts, fallback to RRF, and telemetry. It remains disabled by default until a
+model/version is evaluated on the labeled corpus for relevance and latency. Do not
+claim corpus-wide quality gains from the single synthetic regression case.

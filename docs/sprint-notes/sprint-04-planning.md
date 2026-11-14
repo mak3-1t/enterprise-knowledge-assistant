@@ -42,7 +42,10 @@ through V11, tenant-scoped READY retrieval, and soft deletion. The selected unit
 passed 6/6, and a skip-tests verification passed compile, Spotless, and Checkstyle.
 EKA-20 now fuses semantic and lexical chunk rankings with RRF and keeps a vector-only
 comparison switch. Its six ranking/search unit tests and nine chat tests passed on
-2026-11-13, with Spotless and Checkstyle clean. The PostgreSQL evaluation test is
-pending; it compares a labeled lexical-recovery case (expected MRR 0.5 vector-only,
-1.0 hybrid). This single fixture is not an aggregate quality claim. EKA-21 through
-EKA-23 remain.
+2026-11-13, with Spotless and Checkstyle clean. The PostgreSQL evaluation test passed
+6/6 on 2026-11-13; its labeled lexical-recovery case reports MRR 0.5 vector-only and
+1.0 hybrid. This single fixture is not an aggregate quality claim. EKA-21 is now
+implemented behind an opt-in TEI reranker adapter, with bounded payloads, validated
+scores, timeout, fallback to RRF, and low-cardinality metrics. Mock-based tests do not
+replace model-on-corpus relevance/latency measurement; keep reranking disabled until
+that measurement is recorded. EKA-22 and EKA-23 remain.
