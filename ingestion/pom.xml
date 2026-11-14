@@ -10,7 +10,7 @@
   </parent>
   <artifactId>ingestion</artifactId>
   <name>EKA ingestion</name>
-  <properties><tika.version>3.3.3</tika.version></properties>
+  <properties><tika.version>4.2.0</tika.version></properties>
   <dependencies>
     <dependency><groupId>org.springframework.ai</groupId><artifactId>spring-ai-ollama</artifactId><version>2.0.2</version></dependency>
     <dependency><groupId>org.apache.tika</groupId><artifactId>tika-core</artifactId><version>${tika.version}</version></dependency>
