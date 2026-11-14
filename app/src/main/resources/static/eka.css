@@ -18,5 +18,9 @@ button.secondary { background: #e2eeea; color: #174f43; }
 button:disabled { opacity: .5; cursor: default; }
 #answer { white-space: pre-wrap; overflow-wrap: anywhere; }
 li { margin-bottom: .4rem; overflow-wrap: anywhere; }
+details { margin-top: .4rem; font-size: .9rem; }
+summary { color: #276255; cursor: pointer; }
+.access-editor { margin: .5rem 0; padding: .6rem; border: 1px solid #d4e3dd; border-radius: .4rem; }
+.access-editor label { margin-bottom: .35rem; }
 #notice { color: #795017; }
 @media (max-width: 740px) { .grid { grid-template-columns: minmax(0, 1fr); } }

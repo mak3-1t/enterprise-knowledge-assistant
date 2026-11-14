@@ -16,8 +16,9 @@ timeout and 15 second response timeout.
 If the reranker fails or returns an invalid ordering, the request falls back to the
 original RRF ranking. Low-cardinality metrics record request outcome, latency, and
 candidate count; logs do not contain queries or document text. This optional stage
-does not replace tenant filters in retrieval. Future document ACL filtering must run
-before this stage so unauthorized evidence is never sent to the reranker.
+does not replace tenant or document-role filters in retrieval. Role ACLs are applied
+by PostgreSQL to vector and lexical candidates before RRF, so unauthorized evidence
+does not reach the reranker or answer model.
 
 ## Local smoke setup
 

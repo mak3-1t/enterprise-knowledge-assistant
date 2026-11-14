@@ -28,6 +28,7 @@ public class UploadEvents {
         INTENT_RETURNED,
         COMPLETION_RETURNED,
         DELETED,
+        ACCESS_UPDATED,
         RESTORED,
         PURGED,
         CLEANUP_DEFERRED,

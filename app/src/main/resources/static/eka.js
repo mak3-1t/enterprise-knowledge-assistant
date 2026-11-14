@@ -4,6 +4,7 @@ const get = (id) => document.getElementById(id);
 const notice = (message) => { get('notice').textContent = message; };
 const noEvidence = 'Không tìm thấy đủ căn cứ trong tài liệu đã lập chỉ mục.';
 let token = null;
+let role = null;
 let activeStream = null;
 let conversation = null;
 let revision = 0;
@@ -42,6 +43,7 @@ action('login', async (form) => {
   })).json();
   token = session.accessToken;
   get('login').reset();
+  role = (await (await api('/api/me')).json()).role;
   get('login-panel').hidden = true;
   get('workspace').hidden = false;
   get('tenant').textContent = String(form.get('tenantSlug'));
@@ -54,6 +56,7 @@ get('logout').addEventListener('click', async () => {
   catch (error) { notice('Không xác nhận được đăng xuất trên máy chủ: ' + error.message); }
   finally {
     token = null;
+    role = null;
     conversation = null;
     revision = 0;
     get('workspace').hidden = true;
@@ -73,8 +76,59 @@ async function documents() {
   for (const row of rows) {
     const item = document.createElement('li');
     item.textContent = row.filename + ' · ' + row.status + (row.errorCode ? ' · ' + row.errorCode : '');
+    if (role === 'ADMIN') item.append(accessEditor(row.id));
     list.append(item);
   }
+}
+
+function accessEditor(id) {
+  const details = document.createElement('details');
+  const summary = document.createElement('summary');
+  summary.textContent = 'Quyền đọc tài liệu';
+  details.append(summary);
+  let loaded = false;
+  details.addEventListener('toggle', async () => {
+    if (!details.open || loaded) return;
+    try {
+      const access = await (await api('/api/documents/' + id + '/access')).json();
+      const form = document.createElement('form');
+      form.className = 'access-editor';
+      for (const [value, labelText] of [['EDITOR', 'Biên tập viên'], ['VIEWER', 'Người xem']]) {
+        const label = document.createElement('label');
+        label.className = 'check';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.name = 'readableBy';
+        checkbox.value = value;
+        checkbox.checked = access.readableBy.includes(value);
+        label.append(checkbox, document.createTextNode(labelText));
+        form.append(label);
+      }
+      const save = document.createElement('button');
+      save.textContent = 'Lưu quyền đọc';
+      form.append(save);
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        save.disabled = true;
+        try {
+          const readableBy = Array.from(form.querySelectorAll('input:checked'), (box) => box.value);
+          await api('/api/documents/' + id + '/access', {
+            method: 'PUT', body: JSON.stringify({ readableBy }),
+          });
+          notice('Đã cập nhật quyền đọc. ADMIN luôn có quyền truy cập.');
+        } catch (error) {
+          notice(error.message);
+        } finally {
+          save.disabled = false;
+        }
+      });
+      details.append(form);
+      loaded = true;
+    } catch (error) {
+      notice(error.message);
+    }
+  });
+  return details;
 }
 
 get('reload').addEventListener('click', () => documents().catch(error => notice(error.message)));

@@ -21,6 +21,7 @@ public class PgvectorDocumentRetrieval implements DocumentRetrieval {
     @Override
     public List<Match> search(float[] query, String model, String modelVersion, int limit) {
         UUID tenant = current.require().tenantId();
+        String role = current.require().role();
         if (limit < 1 || limit > 10 || !validIdentity(model) || !validIdentity(modelVersion)) {
             throw new IllegalArgumentException("Invalid retrieval options");
         }
@@ -36,12 +37,15 @@ public class PgvectorDocumentRetrieval implements DocumentRetrieval {
                     AND s.document_id = e.document_id AND s.generation = e.generation
                     AND s.ordinal = e.section_ordinal
                 WHERE e.tenant_id = ? AND d.upload_status = 'READY' AND d.purged_at IS NULL
+                    AND (? = 'ADMIN' OR d.reader_roles @> ARRAY[?]::TEXT[])
                     AND e.model = ? AND e.model_version = ?
                 ORDER BY distance, d.id, e.ordinal
                 LIMIT ?
                 """)
                 .param(vector(query))
                 .param(tenant)
+                .param(role)
+                .param(role)
                 .param(model)
                 .param(modelVersion)
                 .param(limit)

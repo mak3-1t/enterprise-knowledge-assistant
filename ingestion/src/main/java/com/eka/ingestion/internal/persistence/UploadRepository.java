@@ -141,6 +141,85 @@ public class UploadRepository {
                 .list();
     }
 
+    public List<UploadRecord> listVisible(UUID tenant, String role, int limit, int offset) {
+        Objects.requireNonNull(tenant);
+        Objects.requireNonNull(role);
+        if (limit < 1 || limit > 100 || offset < 0) {
+            throw new UploadConflict("INVALID_PAGE");
+        }
+        return jdbc.sql(
+                        """
+                SELECT * FROM ingestion.documents WHERE tenant_id = ? AND idempotency_key IS NOT NULL
+                    AND upload_status NOT IN ('DELETED','EXPIRED')
+                    AND (? = 'ADMIN' OR reader_roles @> ARRAY[?]::TEXT[])
+                ORDER BY created_at DESC, id LIMIT ? OFFSET ?
+                """)
+                .param(tenant)
+                .param(role)
+                .param(role)
+                .param(limit)
+                .param(offset)
+                .query(UploadRepository::map)
+                .list();
+    }
+
+    public Optional<UploadRecord> findVisible(UUID tenant, UUID id, String role) {
+        Objects.requireNonNull(tenant);
+        Objects.requireNonNull(id);
+        Objects.requireNonNull(role);
+        return jdbc.sql(
+                        """
+                SELECT * FROM ingestion.documents WHERE tenant_id = ? AND id = ?
+                    AND idempotency_key IS NOT NULL AND upload_status NOT IN ('DELETED','EXPIRED')
+                    AND (? = 'ADMIN' OR reader_roles @> ARRAY[?]::TEXT[])
+                """)
+                .param(tenant)
+                .param(id)
+                .param(role)
+                .param(role)
+                .query(UploadRepository::map)
+                .optional();
+    }
+
+    public List<String> readerRoles(UUID tenant, UUID id) {
+        Objects.requireNonNull(tenant);
+        Objects.requireNonNull(id);
+        return jdbc.sql(
+                        """
+                SELECT reader_roles FROM ingestion.documents WHERE tenant_id = ? AND id = ?
+                    AND idempotency_key IS NOT NULL AND upload_status NOT IN ('DELETED','EXPIRED')
+                """)
+                .param(tenant)
+                .param(id)
+                .query(UploadRepository::mapReaderRoles)
+                .optional()
+                .orElseThrow(() -> new UploadConflict("NOT_FOUND"));
+    }
+
+    @Transactional
+    public List<String> setReaderRoles(UUID tenant, UUID id, List<String> readerRoles) {
+        Objects.requireNonNull(tenant);
+        Objects.requireNonNull(id);
+        Objects.requireNonNull(readerRoles);
+        var saved =
+                jdbc.sql(
+                                """
+                UPDATE ingestion.documents SET reader_roles = array_remove(
+                    ARRAY[CASE WHEN ? THEN 'EDITOR' END, CASE WHEN ? THEN 'VIEWER' END]::TEXT[],
+                    NULL), acl_updated_at = CURRENT_TIMESTAMP
+                WHERE tenant_id = ? AND id = ? AND idempotency_key IS NOT NULL
+                    AND upload_status NOT IN ('DELETED','EXPIRED')
+                RETURNING reader_roles
+                """)
+                        .param(readerRoles.contains("EDITOR"))
+                        .param(readerRoles.contains("VIEWER"))
+                        .param(tenant)
+                        .param(id)
+                        .query(UploadRepository::mapReaderRoles)
+                        .optional();
+        return saved.orElseThrow(() -> new UploadConflict("NOT_FOUND"));
+    }
+
     @Transactional
     public UploadRecord sealAndComplete(
             UUID tenant, UUID user, UUID id, Supplier<VerifiedUpload> seal) {
@@ -478,6 +557,15 @@ public class UploadRepository {
     private static Instant instant(ResultSet rs, String name) throws SQLException {
         Timestamp value = rs.getTimestamp(name);
         return value == null ? null : value.toInstant();
+    }
+
+    private static List<String> mapReaderRoles(ResultSet rs, int row) throws SQLException {
+        var sqlArray = rs.getArray("reader_roles");
+        try {
+            return List.of((String[]) sqlArray.getArray());
+        } finally {
+            sqlArray.free();
+        }
     }
 
     private static UploadRecord map(ResultSet rs, int row) throws SQLException {
