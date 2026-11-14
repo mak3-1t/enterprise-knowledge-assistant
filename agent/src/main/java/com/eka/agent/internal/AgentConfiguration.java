@@ -65,8 +65,6 @@ class AgentConfiguration {
                         .maxCallsPerTool(1)
                         .maxTotalToolCalls(1)
                         .resolutionFallbackEnabled(false)
-                        .toolExecutionExceptionProcessor(
-                                new DefaultToolExecutionExceptionProcessor(true))
                         .build();
         return new BoundedAgentService(
                 chat,
