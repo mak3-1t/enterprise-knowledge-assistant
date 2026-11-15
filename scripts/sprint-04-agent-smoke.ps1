@@ -12,7 +12,7 @@ param(
     [string] $BaseUrl = 'http://localhost:8080',
 
     [ValidateNotNullOrEmpty()]
-    [string] $Question = 'Nhân viên được làm việc từ xa tối đa mấy ngày mỗi tuần?'
+    [string] $Question = 'How many days per week may employees work remotely?'
 )
 
 $ErrorActionPreference = 'Stop'
