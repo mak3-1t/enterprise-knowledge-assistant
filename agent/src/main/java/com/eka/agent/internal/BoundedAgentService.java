@@ -34,12 +34,15 @@ import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.definition.ToolDefinition;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.client.RestClientResponseException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /** A two-round, allowlisted tool loop. No tool can perform a write or accept tenant identity. */
 public final class BoundedAgentService implements AgentService, AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(BoundedAgentService.class);
+    private static final Pattern HTTP_STATUS =
+            Pattern.compile("\\b([45]\\d\\d)(?:\\s+-|\\s+[A-Za-z][A-Za-z ]*)");
     private static final String SYSTEM =
             """
             You are an enterprise knowledge assistant. Use only the search_documents tool for company evidence.
@@ -206,11 +209,30 @@ public final class BoundedAgentService implements AgentService, AutoCloseable {
             throw new AgentUnavailable();
         } catch (java.util.concurrent.ExecutionException failure) {
             Throwable cause = failure.getCause();
-            LOG.warn(
-                    "agent_operation_failed failure_type={}",
-                    cause == null ? "unknown" : cause.getClass().getSimpleName());
+            LOG.warn("agent_operation_failed cause_chain={}", describeCauseChain(cause));
             throw new AgentUnavailable();
         }
+    }
+
+    private static String describeCauseChain(Throwable failure) {
+        var details = new ArrayList<String>();
+        Throwable current = failure;
+        while (current != null && details.size() < 5) {
+            if (current instanceof RestClientResponseException response) {
+                details.add(
+                        current.getClass().getSimpleName()
+                                + "(http_status="
+                                + response.getStatusCode().value()
+                                + ")");
+            } else {
+                var status = HTTP_STATUS.matcher(String.valueOf(current.getMessage()));
+                details.add(
+                        current.getClass().getSimpleName()
+                                + (status.find() ? "(http_status=" + status.group(1) + ")" : ""));
+            }
+            current = current.getCause();
+        }
+        return details.isEmpty() ? "unknown" : String.join("->", details);
     }
 
     private Answer answerFrom(ChatResponse response, Map<String, Citation> sources) {
