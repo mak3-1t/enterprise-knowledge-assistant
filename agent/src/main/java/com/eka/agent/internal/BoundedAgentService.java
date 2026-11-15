@@ -120,6 +120,7 @@ public final class BoundedAgentService implements AgentService, AutoCloseable {
                         List.of(new SystemMessage(SYSTEM), new UserMessage(question.strip())),
                         options);
         int executedCalls = 0;
+        String stage = "model_call";
         try {
             for (int round = 0; round <= MAX_TOOL_ROUNDS; round++) {
                 ensureTime(deadlineNanos);
@@ -139,6 +140,7 @@ public final class BoundedAgentService implements AgentService, AutoCloseable {
                 }
                 SecurityContext requestContext = SecurityContextHolder.getContext();
                 Prompt toolPrompt = prompt;
+                stage = "tool_execution";
                 var result =
                         callBounded(
                                 () -> {
@@ -152,11 +154,20 @@ public final class BoundedAgentService implements AgentService, AutoCloseable {
                                 deadlineNanos);
                 executedCalls += requested;
                 prompt = new Prompt(result.conversationHistory(), options);
+                stage = "model_followup";
             }
             throw new AgentUnavailable();
         } catch (AgentUnavailable | IllegalArgumentException failure) {
+            LOG.warn(
+                    "agent_outcome=unavailable stage={} failure_type={}",
+                    stage,
+                    failure.getClass().getSimpleName());
             throw failure;
         } catch (RuntimeException failure) {
+            LOG.warn(
+                    "agent_outcome=unavailable stage={} failure_type={}",
+                    stage,
+                    failure.getClass().getSimpleName());
             throw new AgentUnavailable();
         }
     }
@@ -194,6 +205,10 @@ public final class BoundedAgentService implements AgentService, AutoCloseable {
             future.cancel(true);
             throw new AgentUnavailable();
         } catch (java.util.concurrent.ExecutionException failure) {
+            Throwable cause = failure.getCause();
+            LOG.warn(
+                    "agent_operation_failed failure_type={}",
+                    cause == null ? "unknown" : cause.getClass().getSimpleName());
             throw new AgentUnavailable();
         }
     }
@@ -309,8 +324,12 @@ public final class BoundedAgentService implements AgentService, AutoCloseable {
                     outcome = "success";
                     return output;
                 } catch (AgentUnavailable failure) {
+                    outcome = "rejected";
                     throw failure;
                 } catch (Exception failure) {
+                    LOG.warn(
+                            "agent_search_failed failure_type={}",
+                            failure.getClass().getSimpleName());
                     throw new AgentUnavailable();
                 } finally {
                     long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
