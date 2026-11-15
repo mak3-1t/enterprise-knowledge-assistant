@@ -36,7 +36,7 @@ EKA-23 stays bounded to approved read-only actions unless a later story authoriz
 
 ## Current checkpoint
 
-EKA-19 implementation is on branch `feat/lexical-document-search`. On 2026-11-13,
+EKA-19 is merged. On 2026-11-13,
 the developer ran `EmbeddingPersistenceTest`: all 5 tests passed, including Flyway
 through V11, tenant-scoped READY retrieval, and soft deletion. The selected unit suite
 passed 6/6, and a skip-tests verification passed compile, Spotless, and Checkstyle.
@@ -49,10 +49,14 @@ implemented behind an opt-in TEI reranker adapter, with bounded payloads, valida
 scores, timeout, fallback to RRF, and low-cardinality metrics. Mock-based tests do not
 replace model-on-corpus relevance/latency measurement; keep reranking disabled until
 that measurement is recorded. EKA-22 implements tenant-wide default sharing with
-ADMIN-managed role restrictions, enforced in document reads and retrieval. EKA-23 has
-an implementation on branch `feat/bounded-agent-tools`: one read-only document search
-tool, tenant and role-aware retrieval, bounded tool arguments/results, a fixed worker
-pool, an overall deadline, citation validation, and tool audit events. Agent unit tests
-and application compilation pass locally. The live Ollama tool-call smoke and the full
-CI/local Sprint 4 acceptance are still required before calling the story complete or
-releasing `v0.4.0`.
+ADMIN-managed role restrictions, enforced in document reads and retrieval. EKA-23
+merged in PR #80 with a read-only document search tool, tenant and role-aware retrieval,
+bounded tool arguments/results, a fixed worker pool, an overall deadline, citation
+validation, and tool audit events. Agent unit tests and application compilation passed.
+
+On 2026-11-15, the installed Ollama model advertised tool support and a direct Ollama
+API smoke produced a `search_documents` tool call. The app-level smoke and TEI fixture
+benchmark are documented in `docs/agent-tools.md` and `docs/reranking.md` but have not
+yet been run against the live app and reranker. Sprint 4 remains open until those local
+smokes and the real labeled-corpus vector/RRF/reranker relevance/latency evaluation are
+recorded. Reranking stays disabled by default; do not release `v0.4.0` yet.

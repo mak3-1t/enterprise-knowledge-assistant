@@ -27,6 +27,12 @@ Run unit tests and style checks:
     ./mvnw -B -pl agent -am -Dtest=BoundedAgentServiceTest -Dsurefire.failIfNoSpecifiedTests=false test
     ./mvnw -B -pl agent spotless:check checkstyle:check
 
+With the packaged app, local services, and an indexed policy document running, the
+PowerShell smoke test prompts securely for a local account password and prints only
+pass/fail details:
+
+    .\scripts\sprint-04-agent-smoke.ps1 -TenantSlug sprint3-alpha -Email admin@example.test
+
 With the app and Ollama running, authenticate and send a JSON request. This live smoke
 is required in addition to the mock-based tests because support for Ollama tool calling
 depends on the selected model:
@@ -41,3 +47,7 @@ A successful evidence-backed response contains `status: ANSWERED` and validated 
 IDs. Missing evidence returns `NO_EVIDENCE`. Provider, timeout, malformed-tool, or citation
 failures return a generic 503 response. Record the model name and whether it completed a
 tool call when running the live smoke; do not include tokens or document text in notes.
+On 2026-11-15 the installed Ollama model advertised tool support and a direct `/api/chat`
+smoke returned one `search_documents` call. This confirms Ollama/model tool-call support;
+it does not replace the app-level script above, which still requires the local app and
+tenant document services to be running.

@@ -1,6 +1,6 @@
 # EKA delivery roadmap and reconciliation
 
-Updated: 2026-11-13. Source: original roadmap supplied by the developer and the
+Updated: 2026-11-15. Source: original roadmap supplied by the developer and the
 Claude handover EKA-handover.md, reconciled with local source and public GitHub API.
 The handover's older unknowns do not override later merged implementation evidence.
 EKA-n below are original planning IDs, not GitHub issue numbers.
@@ -16,7 +16,7 @@ Dates/capacity remain planning assumptions, not a revised delivery commitment.
 | 1 | E1 | Auth, multi-tenant, document upload | Delivered across auth and document lifecycle stories; see merged release history |
 | 2 | E2 | Outbox/Kafka, parse, chunk, embed, retry/DLT, ingestion status | Delivered and released as v0.2.0; Sprint 2 acceptance recorded in sprint notes |
 | 3 | E3 | RAG chat, SSE, citations, conversation, no-answer | Delivered and released as v0.3.0; two-tenant browser acceptance recorded in sprint-03-demo.md |
-| 4 | E4/E5 | Hybrid RRF, reranking, ACL, bounded agent/tools | In progress; EKA-19/20 verified; EKA-21 opt-in TEI reranking implemented, model-on-corpus quality/latency evaluation pending; EKA-22 role ACL implemented; EKA-23 remains |
+| 4 | E4/E5 | Hybrid RRF, reranking, ACL, bounded agent/tools | In progress; EKA-19/20 verified; EKA-21 opt-in TEI reranking merged but model-on-corpus quality/latency evaluation pending; EKA-22 role ACL merged; EKA-23 merged in PR #80, live app smoke pending |
 | 5 | E6/E7 | Resilience/fallback, guardrails, Redis cache/rate limit, evaluation | Not started |
 | 6 | E8 | Performance, observability, K8s, final documentation | Not started |
 
@@ -44,8 +44,8 @@ substitute for registration/upload/three-role RBAC.
 
 - Java 21, Spring Boot 4.1.2, modular monolith (ADR-001), auth-owned schema/JDBC.
 - Spring AI selected by merged ADR-002; standalone spike evidence exists. Runtime
-  model integration is not implemented. bge-m3 is local embedding, dimension 1024;
-  production provider/model remains undecided.
+  chat and bounded agent integration use local Ollama. bge-m3 is local embedding,
+  dimension 1024; a production provider/model remains undecided.
 - S3 protocol/adapter boundary, development fork in ADR-003. Tested immutable image
   selection is outstanding; Compose currently uses pgsty/minio:latest.
 - Local JWT issuer/external RSA keys/current DB identity per ADR-004 is delivered.
@@ -54,8 +54,8 @@ substitute for registration/upload/three-role RBAC.
 - Tenant identity comes from verified JWT + active DB account; no client override.
 - 2026-11-05 developer approval: ADMIN manages all documents in own tenant; EDITOR
   uploads and deletes only own uploads; VIEWER reads/downloads. Existing MEMBER
-  migrates to VIEWER. All three can list/read/download own-tenant documents initially;
-  per-document ACL filtering remains Sprint 4. This records policy, not shipped code.
+  migrates to VIEWER. EKA-22 later delivered per-document reader-role ACL enforcement
+  in document reads and retrieval, with tenant-wide sharing as the default.
 - ADMIN member-management read routes remain ADMIN-only. New document rules do not
   widen access to auth-owned membership APIs.
 
