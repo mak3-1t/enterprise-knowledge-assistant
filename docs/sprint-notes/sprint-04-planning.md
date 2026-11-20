@@ -60,3 +60,8 @@ benchmark are documented in `docs/agent-tools.md` and `docs/reranking.md` but ha
 yet been run against the live app and reranker. Sprint 4 remains open until those local
 smokes and the real labeled-corpus vector/RRF/reranker relevance/latency evaluation are
 recorded. Reranking stays disabled by default; do not release `v0.4.0` yet.
+
+On 2026-11-20, `BoundedAgentServiceTest` passed 6/6 after adding regressions for the
+server-cited excerpt fallback when the model omits a citation and for preserving an
+explicit `NO_EVIDENCE`. Spotless and Checkstyle passed. This verifies the bounded agent
+unit path only; live app acceptance and corpus-level reranker evaluation remain open.

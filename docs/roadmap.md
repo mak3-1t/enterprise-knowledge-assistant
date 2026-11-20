@@ -136,7 +136,7 @@ The full upload/content-scan verification passed 142 tests (zero failures/errors
 including live ClamAV, PostgreSQL/S3 and HTTP suites. BUILD SUCCESS at 16:40:25 +07:00.
 See [verification evidence](document-scan.md). Merge/CI and the remaining parse/chunk/embed/READY/isolation scope are pending.
 
-## Current roadmap checkpoint — 2026-11-13
+## Current roadmap checkpoint — 2026-11-20
 
 Sprint 3 is closed at release v0.3.0. Sprint 4 planning and delivery order are in
 [Sprint 4 planning](sprint-notes/sprint-04-planning.md). EKA-19's tenant-scoped
@@ -148,4 +148,6 @@ claim corpus-wide quality gains from the single synthetic regression case. EKA-2
 now defaults documents to tenant-wide read access and lets ADMIN restrict individual
 documents to EDITOR and/or VIEWER roles. Role filtering applies to document list,
 detail, download, vector search, and lexical search before RRF/reranking. See
-[document role ACLs](document-acl.md). EKA-23 bounded tools remain next.
+[document role ACLs](document-acl.md). EKA-23 bounded tools merged in PR #80. Live
+app smoke and labeled-corpus reranking quality/latency evaluation remain before
+Sprint 4 closeout; keep reranking disabled by default until measured evidence is recorded.

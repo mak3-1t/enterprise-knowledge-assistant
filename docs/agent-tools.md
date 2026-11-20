@@ -19,10 +19,14 @@ The model cannot provide a tenant ID, select a different tool, or perform a writ
   they do not record questions, document text, credentials, or tokens.
 - Retrieval enforces the authenticated tenant, current document generation, READY state,
   soft-delete state, and EKA-22 reader-role ACL before evidence reaches the model.
+- If retrieval returns evidence but the model omits a citation, the API returns the first
+  bounded evidence excerpt with a citation ID assigned and validated by the server. An
+  explicit `NO_EVIDENCE` from the model remains `NO_EVIDENCE`.
 
 ## Verify
 
-Run unit tests and style checks:
+Run unit tests and style checks. The suite covers citation fallback and preserves an
+explicit `NO_EVIDENCE` response even when search found evidence:
 
     ./mvnw -B -pl agent -am -Dtest=BoundedAgentServiceTest -Dsurefire.failIfNoSpecifiedTests=false test
     ./mvnw -B -pl agent spotless:check checkstyle:check
