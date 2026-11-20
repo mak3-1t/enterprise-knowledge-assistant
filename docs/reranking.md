@@ -55,3 +55,20 @@ they do not claim that a specific model improves relevance. Before enabling this
 a shared environment, run the same labeled corpus with reranking disabled and enabled,
 record MRR/nDCG and p50/p95 latency, identify the model/version, and review data
 handling for the configured endpoint.
+
+## Fixture-level reranker smoke
+
+With the local TEI container running on port 8081, run:
+
+```powershell
+.\scripts\benchmark-reranking.ps1 -Iterations 5 |
+    Tee-Object -FilePath target/sprint-04-reranker-smoke.json
+```
+
+The script uses the two Sprint 3 tenant fixtures independently, runs four labeled
+queries, and reports baseline and reranked MRR/nDCG@3 plus reranker HTTP p50/p95.
+Its baseline is a seeded candidate order, not production vector-only or RRF retrieval;
+the tiny synthetic corpus is only a wiring/regression smoke. Do not treat it as the
+corpus-level EKA-21 comparison or turn reranking on by default based on this output.
+The final EKA-21 evidence still needs an approved labeled evaluation corpus and the
+actual candidate sets produced by the configured retrieval pipeline.

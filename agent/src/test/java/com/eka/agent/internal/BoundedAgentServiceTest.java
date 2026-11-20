@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.eka.auth.api.AuthenticatedAccount;
@@ -25,6 +27,7 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.model.tool.DefaultToolExecutionResult;
 import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.ai.model.tool.ToolCallingManager;
+import org.springframework.ai.ollama.api.OllamaChatOptions;
 import tools.jackson.databind.json.JsonMapper;
 
 class BoundedAgentServiceTest {
@@ -49,6 +52,13 @@ class BoundedAgentServiceTest {
         assertThat(answer.citations())
                 .extracting(com.eka.agent.api.AgentService.Citation::filename)
                 .containsExactly("policy.md");
+        var prompts = org.mockito.ArgumentCaptor.forClass(Prompt.class);
+        verify(model, times(2)).call(prompts.capture());
+        assertThat(prompts.getAllValues())
+                .allSatisfy(
+                        prompt ->
+                                assertThat(((OllamaChatOptions) prompt.getOptions()).getModel())
+                                        .isEqualTo("qwen3:4b-instruct-2507-q4_K_M"));
     }
 
     @Test
@@ -61,6 +71,41 @@ class BoundedAgentServiceTest {
 
         assertThatThrownBy(() -> service.answer("policy")).isInstanceOf(AgentUnavailable.class);
         org.mockito.Mockito.verifyNoInteractions(search);
+    }
+
+    @Test
+    void fallsBackToServerCitedExcerptWhenModelOmitsCitation() {
+        var model = mock(ChatModel.class);
+        var manager = toolManager("{\"question\":\"remote work\"}", "two days each week");
+        var search = mock(HybridDocumentSearch.class);
+        when(search.search("remote work", 5)).thenReturn(List.of(match()));
+        when(model.call(any(Prompt.class)))
+                .thenReturn(toolRequest(), finalAnswer("Employees may work remotely."));
+        var service = service(model, manager, search, Duration.ofSeconds(2));
+
+        var answer = service.answer("How many remote days?");
+
+        assertThat(answer.status()).isEqualTo("ANSWERED");
+        assertThat(answer.answer()).isEqualTo("two days each week [S1]");
+        assertThat(answer.citations())
+                .extracting(com.eka.agent.api.AgentService.Citation::filename)
+                .containsExactly("policy.md");
+    }
+
+    @Test
+    void preservesExplicitNoEvidenceEvenWhenSearchReturnsEvidence() {
+        var model = mock(ChatModel.class);
+        var manager = toolManager("{\"question\":\"remote work\"}", "two days each week");
+        var search = mock(HybridDocumentSearch.class);
+        when(search.search("remote work", 5)).thenReturn(List.of(match()));
+        when(model.call(any(Prompt.class))).thenReturn(toolRequest(), finalAnswer("NO_EVIDENCE"));
+        var service = service(model, manager, search, Duration.ofSeconds(2));
+
+        var answer = service.answer("How many remote days?");
+
+        assertThat(answer.status()).isEqualTo("NO_EVIDENCE");
+        assertThat(answer.answer()).isNull();
+        assertThat(answer.citations()).isEmpty();
     }
 
     @Test
@@ -128,6 +173,7 @@ class BoundedAgentServiceTest {
         CurrentAccount current = () -> ACCOUNT;
         return new BoundedAgentService(
                 model,
+                "qwen3:4b-instruct-2507-q4_K_M",
                 manager,
                 search,
                 current,

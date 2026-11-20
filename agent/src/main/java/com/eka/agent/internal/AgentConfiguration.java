@@ -68,6 +68,7 @@ class AgentConfiguration {
                         .build();
         return new BoundedAgentService(
                 chat,
+                model,
                 manager,
                 search,
                 current,
