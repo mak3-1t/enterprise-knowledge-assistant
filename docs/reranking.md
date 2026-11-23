@@ -61,8 +61,9 @@ handling for the configured endpoint.
 With the local TEI container running on port 8081, run:
 
 ```powershell
-.\scripts\benchmark-reranking.ps1 -Iterations 5 |
-    Tee-Object -FilePath target/sprint-04-reranker-smoke.json
+New-Item -ItemType Directory -Force .\target | Out-Null
+.\scripts\benchmark-reranking.ps1 -Iterations 5 -ModelRevision "8215cf04918ba6f7b6a62bb44238ce2953d8831c" |
+    Tee-Object -FilePath .\target\sprint-04-reranker-smoke.json
 ```
 
 The script uses the two Sprint 3 tenant fixtures independently, runs four labeled
@@ -72,3 +73,38 @@ the tiny synthetic corpus is only a wiring/regression smoke. Do not treat it as 
 corpus-level EKA-21 comparison or turn reranking on by default based on this output.
 The final EKA-21 evidence still needs an approved labeled evaluation corpus and the
 actual candidate sets produced by the configured retrieval pipeline.
+
+### Recorded local smoke — 2026-11-23
+
+The developer ran the fixture smoke with `gte-multilingual-reranker-base` revision
+`8215cf04918ba6f7b6a62bb44238ce2953d8831c`, four synthetic tenant-policy queries,
+and five iterations per query. Seeded-order MRR/nDCG@3 was 0.5/0.5413; reranked
+MRR/nDCG@3 was 1.0/0.8163. Reranker HTTP latency was p50 416 ms and p95 516.1 ms.
+The TEI server started on CPU using its Candle backend; startup included missing-ONNX
+warnings before the server reported `Ready`. These measurements only verify the
+fixture-level smoke and do not represent production vector/RRF candidate quality or
+aggregate corpus performance. Keep reranking opt-in until that evaluation is completed.
+
+## Sprint 4 labeled fixture tooling
+
+The synthetic 30-document, 30-query, three-tenant fixture is in
+`docs/fixtures/sprint-04-reranking/`. `scripts/rerank-evaluation-candidates.py`
+calls TEI on a supplied EKA candidate export after validating fixture IDs, tenant
+ownership, unique candidates, and the ten-candidate bound.
+`scripts/evaluate-reranking.py` requires complete query coverage, known unique IDs,
+zero cross-tenant results, and an exact candidate permutation after reranking before
+reporting nDCG/MRR/Recall and no-answer candidate counts.
+
+The `evaluation` Spring profile contains an ADMIN-authenticated retrieval export
+endpoint. It is disabled unless both the profile and
+`eka.evaluation.retrieval.enabled=true` are active. The endpoint returns the real
+tenant-scoped hybrid retrieval candidates; `scripts/export-reranking-candidates.ps1`
+maps them to fixture IDs and deduplicates chunk hits by document. Keep
+`eka.ingestion.retrieval.reranking-enabled=false` when exporting the RRF baseline.
+Bind the app to `127.0.0.1` for local evaluation and upload the synthetic fixture to
+three isolated tenants first. See the fixture
+[README](fixtures/sprint-04-reranking/README.md) for the local run steps.
+
+The adapter and scripts make the evaluation runnable, but no model-on-real-EKA
+candidate result is recorded yet. Sprint 4 remains open until this local run is
+completed, relevance judgments are reviewed, and the report is recorded.

@@ -16,7 +16,7 @@ Dates/capacity remain planning assumptions, not a revised delivery commitment.
 | 1 | E1 | Auth, multi-tenant, document upload | Delivered across auth and document lifecycle stories; see merged release history |
 | 2 | E2 | Outbox/Kafka, parse, chunk, embed, retry/DLT, ingestion status | Delivered and released as v0.2.0; Sprint 2 acceptance recorded in sprint notes |
 | 3 | E3 | RAG chat, SSE, citations, conversation, no-answer | Delivered and released as v0.3.0; two-tenant browser acceptance recorded in sprint-03-demo.md |
-| 4 | E4/E5 | Hybrid RRF, reranking, ACL, bounded agent/tools | In progress; EKA-19/20 verified; EKA-21 opt-in TEI reranking merged but model-on-corpus quality/latency evaluation pending; EKA-22 role ACL merged; EKA-23 merged in PR #80, live app smoke pending |
+| 4 | E4/E5 | Hybrid RRF, reranking, ACL, bounded agent/tools | In progress; EKA-19/20 verified; EKA-21 opt-in TEI reranking merged, fixture smoke recorded but model-on-corpus quality/latency evaluation pending; EKA-22 role ACL merged; EKA-23 merged in PR #80 and local app smoke passed |
 | 5 | E6/E7 | Resilience/fallback, guardrails, Redis cache/rate limit, evaluation | Not started |
 | 6 | E8 | Performance, observability, K8s, final documentation | Not started |
 
@@ -136,7 +136,7 @@ The full upload/content-scan verification passed 142 tests (zero failures/errors
 including live ClamAV, PostgreSQL/S3 and HTTP suites. BUILD SUCCESS at 16:40:25 +07:00.
 See [verification evidence](document-scan.md). Merge/CI and the remaining parse/chunk/embed/READY/isolation scope are pending.
 
-## Current roadmap checkpoint — 2026-11-20
+## Current roadmap checkpoint — 2026-11-23
 
 Sprint 3 is closed at release v0.3.0. Sprint 4 planning and delivery order are in
 [Sprint 4 planning](sprint-notes/sprint-04-planning.md). EKA-19's tenant-scoped
@@ -148,6 +148,13 @@ claim corpus-wide quality gains from the single synthetic regression case. EKA-2
 now defaults documents to tenant-wide read access and lets ADMIN restrict individual
 documents to EDITOR and/or VIEWER roles. Role filtering applies to document list,
 detail, download, vector search, and lexical search before RRF/reranking. See
-[document role ACLs](document-acl.md). EKA-23 bounded tools merged in PR #80. Live
-app smoke and labeled-corpus reranking quality/latency evaluation remain before
-Sprint 4 closeout; keep reranking disabled by default until measured evidence is recorded.
+[document role ACLs](document-acl.md). EKA-23 bounded tools merged in PR #80. The
+developer completed the live local app smoke with one validated citation and the TEI
+fixture reranker smoke; measured fixture metrics and limitations are recorded in
+[Sprint 4 planning](sprint-notes/sprint-04-planning.md) and [reranking](reranking.md).
+The approved labeled-corpus comparison using actual vector/RRF candidates remains
+before Sprint 4 closeout. The synthetic 30-document fixture now has local upload
+preparation, an opt-in ADMIN-only retrieval export endpoint, a TEI candidate runner,
+and a strict ranking evaluator. The remaining step is to index the fixture in three
+isolated local tenants and record the actual EKA candidate comparison. Keep reranking
+disabled by default until that evaluation is reviewed.
