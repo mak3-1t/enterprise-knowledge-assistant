@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [ValidateNotNullOrEmpty()]
     [string] $Endpoint = 'http://localhost:8081',
@@ -27,8 +27,13 @@ $tenantFixtures = @(
 )
 $cases = [System.Collections.Generic.List[object]]::new()
 foreach ($tenant in $tenantFixtures) {
-    $document = Get-Content -Raw (Join-Path $fixtureRoot $tenant.path)
-    $sentences = @($document -split '(?<=[.!?])\s+' | Where-Object { $_.Trim() -and $_ -notmatch '^#' })
+    # Windows PowerShell 5.1 defaults to the active ANSI code page for files
+    # without a UTF-8 BOM. Read the Vietnamese fixtures explicitly as UTF-8.
+    $document = Get-Content -Raw -Encoding UTF8 (Join-Path $fixtureRoot $tenant.path)
+    $policyText = @($document -split '\r?\n' | Where-Object {
+            $_.Trim() -and $_ -notmatch '^\s*#'
+        }) -join ' '
+    $sentences = @($policyText -split '(?<=[.!?])\s+' | Where-Object { $_.Trim() })
     if ($sentences.Count -lt 2) {
         throw "Expected two policy sentences in $($tenant.path)."
     }
@@ -94,7 +99,8 @@ foreach ($case in $cases) {
         texts = $case.texts
         truncate = $true
     } | ConvertTo-Json -Depth 4
-    $null = Invoke-RestMethod -Method Post -Uri $uri -ContentType 'application/json' -Body $body -TimeoutSec 30
+    $body = [Text.Encoding]::UTF8.GetBytes($body)
+    $null = Invoke-RestMethod -Method Post -Uri $uri -ContentType 'application/json; charset=utf-8' -Body $body -TimeoutSec 30
 }
 
 for ($iteration = 0; $iteration -lt $Iterations; $iteration++) {
@@ -109,7 +115,8 @@ for ($iteration = 0; $iteration -lt $Iterations; $iteration++) {
             truncate = $true
         } | ConvertTo-Json -Depth 4
         $timer = [Diagnostics.Stopwatch]::StartNew()
-        $scores = Invoke-RestMethod -Method Post -Uri $uri -ContentType 'application/json' -Body $body -TimeoutSec 30
+        $body = [Text.Encoding]::UTF8.GetBytes($body)
+        $scores = Invoke-RestMethod -Method Post -Uri $uri -ContentType 'application/json; charset=utf-8' -Body $body -TimeoutSec 30
         $timer.Stop()
         $latencies.Add($timer.Elapsed.TotalMilliseconds)
 

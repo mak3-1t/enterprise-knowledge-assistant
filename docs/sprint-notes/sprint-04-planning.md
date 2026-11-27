@@ -55,13 +55,27 @@ bounded tool arguments/results, a fixed worker pool, an overall deadline, citati
 validation, and tool audit events. Agent unit tests and application compilation passed.
 
 On 2026-11-15, the installed Ollama model advertised tool support and a direct Ollama
-API smoke produced a `search_documents` tool call. The app-level smoke and TEI fixture
-benchmark are documented in `docs/agent-tools.md` and `docs/reranking.md` but have not
-yet been run against the live app and reranker. Sprint 4 remains open until those local
-smokes and the real labeled-corpus vector/RRF/reranker relevance/latency evaluation are
-recorded. Reranking stays disabled by default; do not release `v0.4.0` yet.
+API smoke produced a `search_documents` tool call. On 2026-11-23, the developer's
+local app smoke passed with an evidence-backed answer and one citation. The TEI fixture
+smoke also completed with `gte-multilingual-reranker-base` revision
+`8215cf04918ba6f7b6a62bb44238ce2953d8831c`: over four synthetic queries and five
+iterations per query, seeded-order MRR/nDCG@3 was 0.5/0.5413 and reranked MRR/nDCG@3
+was 1.0/0.8163; reranker HTTP p50/p95 was 416/516.1 ms. This confirms local wiring
+and a fixture-level regression only, not production retrieval improvement. See
+`docs/agent-tools.md` and `docs/reranking.md`. Sprint 4 remains open until relevance
+and latency are measured on an approved labeled corpus using actual vector/RRF
+candidate sets. Reranking stays disabled by default; do not release `v0.4.0` yet.
 
 On 2026-11-20, `BoundedAgentServiceTest` passed 6/6 after adding regressions for the
 server-cited excerpt fallback when the model omits a citation and for preserving an
 explicit `NO_EVIDENCE`. Spotless and Checkstyle passed. This verifies the bounded agent
-unit path only; live app acceptance and corpus-level reranker evaluation remain open.
+unit path only; the live app smoke is now recorded above, while corpus-level reranker
+evaluation remains open.
+
+On 2026-11-23, a synthetic labeled fixture was added at
+`docs/fixtures/sprint-04-reranking/` (30 documents, 30 queries, three tenants).
+The opt-in `evaluation` profile now exposes tenant-admin-only access to actual
+vector/RRF candidates; a PowerShell exporter maps uploaded `<doc_id>.md` fixture
+documents into the TEI and evaluator inputs. `/api/agent` citations remain
+model-selected and are not valid full retrieval rankings. This tooling is runnable,
+but no actual EKA candidate comparison has been recorded yet; Sprint 4 remains open.

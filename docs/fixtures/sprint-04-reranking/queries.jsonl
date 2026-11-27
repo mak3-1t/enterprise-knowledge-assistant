@@ -1,0 +1,30 @@
+{"query_id": "q01", "tenant_id": "acme_retail", "query": "Tôi muốn đổi sản phẩm đã mua thì trong bao lâu?", "type": "relevant", "expect_no_relevant_doc": false, "cross_tenant_target_docs": []}
+{"query_id": "q02", "tenant_id": "acme_retail", "query": "Bao lâu thì nhận lại tiền khi trả hàng?", "type": "relevant", "expect_no_relevant_doc": false, "cross_tenant_target_docs": []}
+{"query_id": "q03", "tenant_id": "acme_retail", "query": "Quên mật khẩu tài khoản mua sắm phải làm sao?", "type": "relevant", "expect_no_relevant_doc": false, "cross_tenant_target_docs": []}
+{"query_id": "q04", "tenant_id": "acme_retail", "query": "Đơn bao nhiêu tiền thì được miễn phí ship?", "type": "relevant", "expect_no_relevant_doc": false, "cross_tenant_target_docs": []}
+{"query_id": "q05", "tenant_id": "acme_retail", "query": "Tôi lỡ đặt nhầm, hủy đơn được không?", "type": "hard_negative", "expect_no_relevant_doc": false, "cross_tenant_target_docs": []}
+{"query_id": "q06", "tenant_id": "acme_retail", "query": "Chính sách hoàn tiền", "type": "ambiguous_topic", "expect_no_relevant_doc": false, "cross_tenant_target_docs": []}
+{"query_id": "q07", "tenant_id": "acme_retail", "query": "Giờ làm việc hỗ trợ khách hàng", "type": "ambiguous_topic", "expect_no_relevant_doc": false, "cross_tenant_target_docs": []}
+{"query_id": "q08", "tenant_id": "acme_retail", "query": "Hạn mức chuyển khoản tối đa mỗi ngày là bao nhiêu?", "type": "cross_tenant", "expect_no_relevant_doc": true, "cross_tenant_target_docs": ["b04", "b03"]}
+{"query_id": "q09", "tenant_id": "acme_retail", "query": "Cách khóa thẻ khi bị mất", "type": "cross_tenant", "expect_no_relevant_doc": true, "cross_tenant_target_docs": ["b05"]}
+{"query_id": "q10", "tenant_id": "acme_retail", "query": "Cửa hàng có bán xe máy điện không?", "type": "no_answer", "expect_no_relevant_doc": true, "cross_tenant_target_docs": []}
+{"query_id": "q11", "tenant_id": "beta_bank", "query": "Giao dịch bị trừ nhầm tiền thì khiếu nại thế nào?", "type": "relevant", "expect_no_relevant_doc": false, "cross_tenant_target_docs": []}
+{"query_id": "q12", "tenant_id": "beta_bank", "query": "Quên mật khẩu app ngân hàng thì lấy lại ra sao?", "type": "relevant", "expect_no_relevant_doc": false, "cross_tenant_target_docs": []}
+{"query_id": "q13", "tenant_id": "beta_bank", "query": "Chuyển khoản sang ngân hàng khác có mất phí không?", "type": "relevant", "expect_no_relevant_doc": false, "cross_tenant_target_docs": []}
+{"query_id": "q14", "tenant_id": "beta_bank", "query": "Thẻ bị mất cần làm gì ngay?", "type": "hard_negative", "expect_no_relevant_doc": false, "cross_tenant_target_docs": []}
+{"query_id": "q15", "tenant_id": "beta_bank", "query": "Gửi tiết kiệm 12 tháng lãi bao nhiêu?", "type": "relevant", "expect_no_relevant_doc": false, "cross_tenant_target_docs": []}
+{"query_id": "q16", "tenant_id": "beta_bank", "query": "Chính sách hoàn tiền", "type": "ambiguous_topic", "expect_no_relevant_doc": false, "cross_tenant_target_docs": []}
+{"query_id": "q17", "tenant_id": "beta_bank", "query": "Chi nhánh mở cửa lúc mấy giờ?", "type": "ambiguous_topic", "expect_no_relevant_doc": false, "cross_tenant_target_docs": []}
+{"query_id": "q18", "tenant_id": "beta_bank", "query": "Chính sách đổi trả hàng trong 30 ngày", "type": "cross_tenant", "expect_no_relevant_doc": true, "cross_tenant_target_docs": ["a01", "a02"]}
+{"query_id": "q19", "tenant_id": "beta_bank", "query": "Điều kiện nhận học bổng", "type": "cross_tenant", "expect_no_relevant_doc": true, "cross_tenant_target_docs": ["g04"]}
+{"query_id": "q20", "tenant_id": "beta_bank", "query": "Thời tiết hôm nay thế nào?", "type": "no_answer", "expect_no_relevant_doc": true, "cross_tenant_target_docs": []}
+{"query_id": "q21", "tenant_id": "gamma_edu", "query": "Hủy khóa học có được hoàn học phí không?", "type": "relevant", "expect_no_relevant_doc": false, "cross_tenant_target_docs": []}
+{"query_id": "q22", "tenant_id": "gamma_edu", "query": "Đặt lại mật khẩu cổng sinh viên", "type": "relevant", "expect_no_relevant_doc": false, "cross_tenant_target_docs": []}
+{"query_id": "q23", "tenant_id": "gamma_edu", "query": "Muốn xin chấm lại bài thi thì làm sao?", "type": "hard_negative", "expect_no_relevant_doc": false, "cross_tenant_target_docs": []}
+{"query_id": "q24", "tenant_id": "gamma_edu", "query": "Được bảo lưu mấy học kỳ?", "type": "relevant", "expect_no_relevant_doc": false, "cross_tenant_target_docs": []}
+{"query_id": "q25", "tenant_id": "gamma_edu", "query": "Mượn sách thư viện được bao nhiêu ngày?", "type": "relevant", "expect_no_relevant_doc": false, "cross_tenant_target_docs": []}
+{"query_id": "q26", "tenant_id": "gamma_edu", "query": "Chính sách hoàn tiền", "type": "ambiguous_topic", "expect_no_relevant_doc": false, "cross_tenant_target_docs": []}
+{"query_id": "q27", "tenant_id": "gamma_edu", "query": "Giờ làm việc phòng hỗ trợ", "type": "ambiguous_topic", "expect_no_relevant_doc": false, "cross_tenant_target_docs": []}
+{"query_id": "q28", "tenant_id": "gamma_edu", "query": "Điểm thưởng thành viên hết hạn khi nào?", "type": "cross_tenant", "expect_no_relevant_doc": true, "cross_tenant_target_docs": ["a06"]}
+{"query_id": "q29", "tenant_id": "gamma_edu", "query": "Lãi suất tiết kiệm kỳ hạn 12 tháng", "type": "cross_tenant", "expect_no_relevant_doc": true, "cross_tenant_target_docs": ["b06"]}
+{"query_id": "q30", "tenant_id": "gamma_edu", "query": "Quy định đóng cửa ký túc xá của trường khác", "type": "no_answer", "expect_no_relevant_doc": true, "cross_tenant_target_docs": []}
