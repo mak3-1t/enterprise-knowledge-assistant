@@ -21,19 +21,19 @@ are not the complete ranked candidate list.
 
 ## Local EKA candidate run
 
-Prepare 30 Markdown files with the required `<doc_id>.md` filenames:
+Upload the synthetic fixture through the local EKA API. The script prompts for a
+tenant slug, ADMIN email, and hidden password separately for each fixture tenant;
+credentials are used only for login and are not printed. It creates Markdown upload
+bodies in memory, uploads through EKA signed object-storage forms, and waits for each
+document to reach `READY`:
 
 ```powershell
-.\scripts\prepare-sprint-04-reranking-fixture.ps1
+.\scripts\upload-sprint-04-reranking-fixture.ps1
 ```
 
-Upload each of the three generated tenant folders to a separate local EKA tenant.
-Do not mix folders. Use an ADMIN account for each tenant, and wait until all 10
-documents in each tenant show `READY`. The endpoint reads through EKA's real
-tenant-scoped vector/RRF retrieval; it does not create or index fixture documents.
-
-Use the local upload/parser/Ollama setup from [the Sprint 3 demo](../../sprint-03-demo.md)
-so new fixture documents reach `READY`. Keep the embedding model version equal to
+Map each fixture tenant to a distinct local EKA tenant. The uploader requires the
+local upload/parser/embedding services from [the Sprint 3 demo](../../sprint-03-demo.md)
+so new fixture documents can reach `READY`. Keep the embedding model version equal to
 the one used for these new documents. Start the app with the evaluation-only profile
 and endpoint enabled, while leaving reranking disabled so the export is the RRF
 baseline:
